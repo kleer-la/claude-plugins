@@ -1,0 +1,8 @@
+{
+  "name": "e2e-video-doc",
+  "version": "0.1.0",
+  "description": "Recorre la app como un usuario real y produce un video narrado, capturas y detalle de las llamadas a la API. El recorrido es un test E2E: si se rompe, la pantalla cambió.",
+  "author": {
+    "name": "Kleer"
+  }
+}
