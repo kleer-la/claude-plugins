@@ -25,13 +25,45 @@ The only thing you write per project. Lives at the repo root, committed.
 `{flow}` is replaced with the flow name. Each flow overrides whatever it needs from
 `defaults`; usually it only defines `capture`.
 
+## Several languages
+
+Optional. Declare `languages` and the flow can be rendered in each one:
+
+```json
+{
+  "defaults": {
+    "screenshots": "tmp/video_screenshots/{flow}_{lang}",
+    "narration": "scripts/{flow}_video_narration{lang_suffix}.json",
+    "output": "public/videos/{flow}_{lang}.mp4",
+    "capture": "docker exec -e VIDEO_LOCALE={lang} my-app bin/rails test test/system/{flow}_video_test.rb"
+  },
+  "languages": {
+    "es": { "voice": "es-CO-SalomeNeural", "suffix": "" },
+    "en": { "voice": "en-US-JennyNeural", "suffix": "_en" }
+  }
+}
+```
+
+```bash
+bash run.sh checkout        # the first language declared
+bash run.sh checkout en
+```
+
+`{lang}` is the code, `{lang_suffix}` is what the narration files append (often empty for
+the primary language). Without a `languages` block both resolve to empty and everything
+behaves as a single-language project.
+
+**The capture step re-runs per language.** That is deliberate — see
+[gotchas.md](gotchas.md), "the interface has to speak the same language as the voice".
+The declaration order matters: the first language listed is the default.
+
 | Key | What it is |
 |---|---|
 | `capture` | The command that runs the walkthrough and leaves the PNGs. **Yours**: your stack, your devcontainer, your fixtures. Runs from the repo root. |
 | `screenshots` | Where it leaves them, relative to the repo root. |
 | `narration` | The narration JSON for that flow. See [narration.md](narration.md). |
 | `output` | Where the MP4 goes. **Outside `tmp/`** — see [gotchas.md](gotchas.md). |
-| `voice` | See [voices.md](voices.md). `VOICE=` in the environment overrides it. |
+| `voice` | See [voices.md](voices.md). A language's voice wins over the flow's, which wins over the default. `VOICE=` in the environment overrides all of them. |
 
 ## Why the plugin does not ship the capture step
 

@@ -5,10 +5,12 @@
 # See reference/gotchas.md, "Windows".
 #
 #   .\make_videos.ps1 -Flow checkout
+#   .\make_videos.ps1 -Flow checkout -Lang en
 #   $env:VOICE = "en-GB-SoniaNeural"; .\make_videos.ps1 -Flow checkout
 
 param(
     [Parameter(Mandatory = $true)][string]$Flow,
+    [string]$Lang,
     [switch]$AssembleOnly
 )
 
@@ -29,25 +31,45 @@ if (-not $Config.flows.$Flow) {
     throw "Flow '$Flow' is not in the config. Defined: $defined"
 }
 
+# Languages are optional. Without them, {lang} and {lang_suffix} resolve to empty.
+$Languages = $Config.languages
+$HasLangs = $Languages -and $Languages.PSObject.Properties.Name.Count -gt 0
+if ($HasLangs) {
+    # PSObject.Properties preserves document order, unlike a sorted key list.
+    $LangCode = if ($Lang) { $Lang } else { $Languages.PSObject.Properties.Name[0] }
+    if (-not $Languages.$LangCode) {
+        $defined = ($Languages.PSObject.Properties.Name -join ", ")
+        throw "Language '$LangCode' is not in the config. Defined: $defined"
+    }
+    $LangSuffix = if ($null -ne $Languages.$LangCode.suffix) { $Languages.$LangCode.suffix } else { "" }
+}
+else {
+    if ($Lang) { throw "This config declares no languages, but '$Lang' was passed." }
+    $LangCode = ""
+    $LangSuffix = ""
+}
+
 function Field([string]$Key) {
     $v = $Config.flows.$Flow.$Key
     if (-not $v) { $v = $Config.defaults.$Key }
     if (-not $v) { throw "Missing '$Key' for flow '$Flow'" }
-    return $v.Replace("{flow}", $Flow)
+    return $v.Replace("{flow}", $Flow).Replace("{lang_suffix}", $LangSuffix).Replace("{lang}", $LangCode)
 }
 
 $Shots     = Join-Path $Root (Field "screenshots")
 $Narration = Join-Path $Root (Field "narration")
 $Output    = Join-Path $Root (Field "output")
 $Voice     = if ($env:VOICE) { $env:VOICE }
+             elseif ($HasLangs -and $Languages.$LangCode.voice) { $Languages.$LangCode.voice }
              elseif ($Config.flows.$Flow.voice) { $Config.flows.$Flow.voice }
              elseif ($Config.defaults.voice) { $Config.defaults.voice }
              else { "en-US-JennyNeural" }
+$Label     = if ($LangCode) { "$Flow ($LangCode)" } else { $Flow }
 
 if (-not (Test-Path $Narration)) { throw "No narration file: $Narration" }
 
 if (-not $AssembleOnly) {
-    Write-Host "> $Flow - capturing"
+    Write-Host "> $Label - capturing"
     Push-Location $Root
     try {
         $env:RUN_VIDEO_TESTS = "1"
@@ -78,7 +100,7 @@ $wslNarration = Convert-ToWslPath $Narration
 $wslOutput    = Convert-ToWslPath $Output
 $wslScript    = Convert-ToWslPath (Join-Path $EngineDir "make_video.sh")
 
-Write-Host "> $Flow - narrating and assembling in WSL ($Voice)"
+Write-Host "> $Label - narrating and assembling in WSL ($Voice)"
 wsl bash -lc "VOICE='$Voice' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash '$wslScript'"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

@@ -38,6 +38,20 @@ Two things in there that you will not work out from first principles:
   plugin's own `.ps1` there is `make_videos.cmd`, which calls it with
   `-ExecutionPolicy Bypass`.
 
+## The interface has to speak the same language as the voice
+
+A screen in one language with a voice-over in another reads as a mistake, not as a
+translation. So a multi-language build is not "assemble the same screenshots with a
+different audio track" — **each language re-captures**, with the app's locale set for the
+run.
+
+That is why `capture` accepts `{lang}`: pass it through to whatever your app reads
+(`VIDEO_LOCALE`, `LANG`, a query parameter) and let the walkthrough render in that
+language before the shot.
+
+The cost is real — N languages means N capture runs — and it is worth paying. The
+alternative looks broken.
+
 ## One flow per run
 
 Running several video specs at once takes twice as long *and* makes them fight over
