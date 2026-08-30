@@ -1,54 +1,76 @@
 # e2e-video-doc
 
-Plugin de Claude Code. Recorre la aplicación como un usuario real y produce un
-video narrado, capturas y el detalle de las llamadas a la API.
+A Claude Code plugin. Walks your application like a real user and produces a narrated
+video, screenshots, and the detail of each API call.
 
-El recorrido es un **test E2E**: si se rompe, la pantalla cambió. Por eso la
-documentación que sale de acá no queda desactualizada en silencio.
+The walkthrough is an **E2E test**: when it breaks, the screen changed. That is why the
+documentation it produces cannot go stale in silence.
 
-## Instalar
+## What you get
+
+- **A 3-4 minute narrated MP4** per flow, in any of edge-tts's voices.
+- **A walkthrough that fails loudly** when the product moves under it.
+- **API calls made visible** — an HTTP call has nothing to photograph, so it gets drawn as
+  a card and filmed alongside the real screens.
+
+Useful for offline QA, asynchronous team review, explaining a feature to customers or
+support, release notes and user guides that regenerate themselves, checking the result of
+work delegated to an AI agent, and a permanent demo of a feature on the product site.
+
+## Install
 
 ```
 /plugin marketplace add kleer-la/claude-plugins
 /plugin install e2e-video-doc@kleer-la
 ```
 
-Después, en el proyecto: pedile a Claude un video de un flujo, o creá el
-`e2e-video-doc.json` (ver `skills/e2e-video-doc/reference/config.md`).
+Then ask Claude for a video of a flow, or write the `e2e-video-doc.json` yourself — see
+`skills/e2e-video-doc/reference/config.md`.
 
-## Requisitos
+## Requirements
 
-`edge-tts` (pip), `ffmpeg`, `jq`, `python3`. En Windows no están en el host: la
-captura corre ahí y el armado cruza a WSL.
+`edge-tts` (pip), `ffmpeg`, `jq`, `python3`.
 
 ```bash
 pip install edge-tts
-apt install ffmpeg jq      # o brew install ffmpeg jq
+apt install ffmpeg jq      # or brew install ffmpeg jq
 ```
 
-## De dónde sale
+On Windows these are not on the host: capture runs there and assembly crosses into WSL.
 
-Cuatro proyectos tenían el mismo pipeline copiado a mano, derivando cada uno por
-su lado — jaomai, cenped, crm y kydat-poc. Al comparar las cuatro copias del
-motor, cada una tenía arreglos que las otras no:
+## How it is split
 
-| | jaomai | cenped | crm | kydat |
+```
+capture  →  NN_name.png  +  [{screenshot, duration, narration}]  →  engine
+(yours)                 THE CONTRACT                             (the plugin's)
+```
+
+The engine is stack-agnostic — it does not care whether the PNG came from Capybara,
+Playwright, or a rasterised PDF. The walkthrough is yours, because it uses your factories
+and has to age with your project.
+
+## Where it came from
+
+Four projects had the same pipeline copied by hand, each drifting on its own. Comparing
+the four copies of the engine, every one had fixes the others lacked:
+
+| | A | B | C | D |
 |---|---|---|---|---|
-| overrides por env | sí | sí | **no** | sí |
-| `realpath` en el concat | sí | — | **no** | sí |
-| `mkdir -p` del directorio de salida | **no** | **no** | **no** | sí |
-| guarda de concat vacío | **no** | **no** | **no** | sí |
+| environment overrides | yes | yes | **no** | yes |
+| `realpath` in the concat list | yes | — | **no** | yes |
+| `mkdir -p` of the output directory | **no** | **no** | **no** | yes |
+| empty-concat guard | **no** | **no** | **no** | yes |
 
-El motor de este plugin es la unión de las cuatro. Las recetas de captura salen de
-kydat-poc (Playwright, la más completa) y de jaomai/cenped (Rails).
+This engine is the union of all four. `reference/gotchas.md` is the rest of what those
+four projects learned the expensive way.
 
-## Estructura
+## Layout
 
 ```
 .claude-plugin/plugin.json
 skills/e2e-video-doc/
-  SKILL.md                    # el punto de entrada
-  engine/                     # el motor — no depende de ningún proyecto
-  recipes/                    # helpers de captura por stack
-  reference/                  # config, narración, voces, y lo que ya costó caro
+  SKILL.md      # the entry point
+  engine/       # the engine — depends on no project
+  recipes/      # capture helpers per stack
+  reference/    # config, narration, voices, and what already cost us
 ```

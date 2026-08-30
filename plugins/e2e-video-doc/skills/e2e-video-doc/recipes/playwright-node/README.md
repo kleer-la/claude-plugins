@@ -1,62 +1,68 @@
-# Receta Playwright (Node/TypeScript)
+# Playwright recipe (Node / TypeScript)
 
-Copiá `capture.ts` y `apiPanel.ts` a los helpers del proyecto. No tienen
-dependencias más allá de `@playwright/test`.
-
-Extraídos de kydat-poc (`e2e-transoftweb/browser/helpers/`), donde corren contra
-IIS Express en Windows.
+Copy `capture.ts` and `apiPanel.ts` into the project's helpers. They have no dependencies
+beyond `@playwright/test`.
 
 ## `capture.ts`
 
 ```ts
 import { createCapture, resetDir } from "../helpers/capture";
 
-const DIR = "tmp/e2e/alta";
+const DIR = "tmp/e2e/checkout";
 
 test.beforeAll(() => resetDir(DIR));
 
-test("alta de un pedido", { tag: "@video" }, async ({ page }) => {
-  test.skip(!process.env.RUN_VIDEO_TESTS, "sólo con RUN_VIDEO_TESTS=1");
+test("placing an order", { tag: "@video" }, async ({ page }) => {
+  test.skip(!process.env.RUN_VIDEO_TESTS, "only with RUN_VIDEO_TESTS=1");
   const capture = createCapture(page, DIR);
 
   await page.goto("/");
-  await capture("inicio");
+  await capture("start");
   await capture("total", { highlight: "#total", scroll: "css:#total" });
-  await capture("detalle", { focus: ".panel-detalle", focusPad: 40 });
+  await capture("detail", { focus: ".detail-panel", focusPad: 40 });
 });
 ```
 
-| Opción | Qué hace |
+| Option | What it does |
 |---|---|
-| `highlight` | Recuadro rojo sobre uno o más selectores durante el disparo. Se saca después, no ensucia el paso siguiente. Falla si no matchea. |
-| `focus` / `focusPad` | Recorta la imagen alrededor de un selector, con aire. |
-| `scroll` | `"top"` \| `"bottom"` \| número de píxeles \| `"css:<selector>"`. |
-| `fullPage` | Página completa. No convive con `focus` — recortar implica mirar el viewport. |
-| `pauseMs` | Espera antes del disparo (default 400). |
+| `highlight` | Red box over one or more selectors during the shot. Removed afterwards, so it does not leak into the next step. Throws if it does not match. |
+| `focus` / `focusPad` | Crops the image around a selector, with air. |
+| `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"`. |
+| `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. |
+| `pauseMs` | Wait before the shot (default 400). |
 
-`dismissDxTrial` cierra la franja de trial de DevExpress. Si el proyecto tiene
-otro banner de entorno, agregá el equivalente y llamalo desde el mismo lugar.
+`dismissBanner(page, selector)` closes whatever your stack puts on top of the page — a
+component library's trial strip, a staging ribbon, a debug bar. Call it once in a
+`beforeEach`, not in every test.
 
 ## `apiPanel.ts`
 
-Para flujos donde parte de lo que se cuenta pasa por la API y no por la pantalla.
-Dibuja la llamada como una ficha y la fotografía con el mismo `capture`.
+For flows where part of what you are telling happens through the API rather than on the
+screen. It draws the call as a card and photographs it with the same `capture`.
 
 ```ts
-await mostrarLlamada(page, {
-  descripcion: "El dador pide su credencial. La contraseña va en el cuerpo, no en la URL.",
-  metodo: "POST",
-  url: "/api/v4/credenciales/usuario",
-  request: recortarCuerpo(cuerpo, ["Password"]),
+await showApiCall(page, {
+  description: "The client requests a token. The password travels in the body, not the URL.",
+  method: "POST",
+  url: "/api/v2/tokens",
+  request: pickFields(body, ["username"]),
   status: 200,
-  response: { Token: recortarValor(token) },
-  observacion: "El OperationId es el Id del usuario.",
+  response: { token: trimValue(token) },
+  note: "The token is scoped to this client only.",
 });
-await capture("credencial_emitida");
+await capture("token_issued");
 ```
 
-`recortarCuerpo` se queda con las claves que la descripción señala y dice cuántas
-quedaron afuera. `recortarValor` deja ver el principio de un valor largo, no el
-valor — usalo siempre para credenciales.
+| Export | What it is |
+|---|---|
+| `showApiCall(page, call)` | Draws the card. Follow it with `capture(...)`. |
+| `showCard(page, {...})` | Free-text card, for what is not an API call — a query result, a log line. |
+| `pickFields(body, keys)` | Keeps the keys the description points at, says how many were left out. |
+| `trimValue(value)` | Shows the start of a long value, not the value. **Always use it for credentials.** |
+| `postJson(api, url, data, bearer?)` | JSON POST with an optional bearer credential. |
 
-`esperado: "rechazo"` pinta la ficha en rojo, para mostrar el caso negativo.
+`expect: "reject"` paints the card red, for showing the negative case.
+
+**Labels are configurable.** The card says `request` / `response` by default; if the
+narration is in another language, pass `labels: { request: "pedido", response: "respuesta" }`
+so the card matches the voice.

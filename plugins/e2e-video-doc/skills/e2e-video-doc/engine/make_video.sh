@@ -1,27 +1,28 @@
 #!/usr/bin/env bash
 #
-# Arma un video narrado a partir de screenshots numerados + un JSON de narración.
+# Assembles a narrated video from numbered screenshots + a narration JSON.
 #
-# No sabe nada del proyecto: recibe todo por entorno. Lo único que le importa es el
-# contrato — PNGs `NN_nombre.png` en un directorio, y un JSON con la narración.
+# Knows nothing about your project: everything comes in through the environment. All it
+# cares about is the contract — `NN_name.png` files in a directory, and a JSON with the
+# narration.
 #
-# Requisitos: edge-tts (pip), ffmpeg/ffprobe, jq, python3.
-#   En Windows: no corren en el host. Ver make_videos.ps1 (captura en Windows,
-#   arma en WSL).
+# Requires: edge-tts (pip), ffmpeg/ffprobe, jq, python3.
+#   On Windows these are not on the host. See make_videos.ps1 (capture on Windows,
+#   assemble in WSL).
 #
-# Uso:
-#   NARRATION=scripts/alta_narration.json \
-#   SCREENSHOTS=tmp/video/alta \
-#   OUTPUT=public/videos/alta.mp4 \
-#   VOICE=es-AR-ElenaNeural \
+# Usage:
+#   NARRATION=scripts/checkout_narration.json \
+#   SCREENSHOTS=tmp/video/checkout \
+#   OUTPUT=public/videos/checkout.mp4 \
+#   VOICE=en-US-JennyNeural \
 #     bash make_video.sh
 
 set -euo pipefail
 
-NARRATION_FILE="${NARRATION:?falta NARRATION=<ruta al json de narración>}"
-SCREENSHOTS_DIR="${SCREENSHOTS:?falta SCREENSHOTS=<directorio de PNGs>}"
-OUTPUT="${OUTPUT:?falta OUTPUT=<ruta del mp4 de salida>}"
-VOICE="${VOICE:-es-AR-ElenaNeural}"
+NARRATION_FILE="${NARRATION:?set NARRATION=<path to the narration json>}"
+SCREENSHOTS_DIR="${SCREENSHOTS:?set SCREENSHOTS=<directory of PNGs>}"
+OUTPUT="${OUTPUT:?set OUTPUT=<path of the output mp4>}"
+VOICE="${VOICE:-en-US-JennyNeural}"
 RATE="${RATE:-+0%}"
 
 AUDIO_DIR="$SCREENSHOTS_DIR/audio"
@@ -29,55 +30,55 @@ SEGMENTS_DIR="$SCREENSHOTS_DIR/segments"
 
 for cmd in edge-tts ffmpeg ffprobe jq python3; do
   if ! command -v "$cmd" &>/dev/null; then
-    echo "Falta: $cmd"
+    echo "Missing: $cmd"
     case $cmd in
-      edge-tts) echo "  Instalar: pip install edge-tts" ;;
-      ffmpeg|ffprobe) echo "  Instalar: apt install ffmpeg (o brew install ffmpeg)" ;;
-      jq)       echo "  Instalar: apt install jq (o brew install jq)" ;;
-      python3)  echo "  Instalar: apt install python3" ;;
+      edge-tts) echo "  Install: pip install edge-tts" ;;
+      ffmpeg|ffprobe) echo "  Install: apt install ffmpeg (or brew install ffmpeg)" ;;
+      jq)       echo "  Install: apt install jq (or brew install jq)" ;;
+      python3)  echo "  Install: apt install python3" ;;
     esac
     exit 1
   fi
 done
 
-[ -f "$NARRATION_FILE" ] || { echo "No existe la narración: $NARRATION_FILE"; exit 1; }
-[ -d "$SCREENSHOTS_DIR" ] || { echo "No existe el directorio de capturas: $SCREENSHOTS_DIR"; exit 1; }
+[ -f "$NARRATION_FILE" ] || { echo "No such narration file: $NARRATION_FILE"; exit 1; }
+[ -d "$SCREENSHOTS_DIR" ] || { echo "No such screenshots directory: $SCREENSHOTS_DIR"; exit 1; }
 
-echo "Armando video"
-echo "   Voz:        $VOICE"
-echo "   Narración:  $NARRATION_FILE"
-echo "   Capturas:   $SCREENSHOTS_DIR"
+echo "Building video"
+echo "   Voice:       $VOICE"
+echo "   Narration:   $NARRATION_FILE"
+echo "   Screenshots: $SCREENSHOTS_DIR"
 
-# `$(dirname "$OUTPUT")`: el mp4 suele salir fuera del directorio de capturas —
-# ver reference/gotchas.md, "el video no puede vivir en tmp/".
+# `$(dirname "$OUTPUT")`: the mp4 usually lands outside the screenshots directory —
+# see reference/gotchas.md, "the video cannot live in tmp/".
 mkdir -p "$AUDIO_DIR" "$SEGMENTS_DIR" "$(dirname "$OUTPUT")"
 
 ENTRIES=$(jq length "$NARRATION_FILE")
 CONCAT_FILE="$SEGMENTS_DIR/concat.txt"
 : > "$CONCAT_FILE"
 
-FALTANTES=0
+MISSING=0
 for i in $(seq 0 $((ENTRIES - 1))); do
   IDX=$(printf "%02d" $((i + 1)))
   SCREENSHOT=$(jq -r ".[$i].screenshot" "$NARRATION_FILE")
   DURATION=$(jq -r ".[$i].duration" "$NARRATION_FILE")
-  NARRACION=$(jq -r ".[$i].narration" "$NARRATION_FILE")
+  NARRATION_TEXT=$(jq -r ".[$i].narration" "$NARRATION_FILE")
 
   IMG="$SCREENSHOTS_DIR/$SCREENSHOT"
   AUDIO="$AUDIO_DIR/${IDX}.mp3"
   SEGMENT="$SEGMENTS_DIR/${IDX}.mp4"
 
   if [ ! -f "$IMG" ]; then
-    echo "  falta la captura: $SCREENSHOT — se saltea"
-    FALTANTES=$((FALTANTES + 1))
+    echo "  missing screenshot: $SCREENSHOT — skipped"
+    MISSING=$((MISSING + 1))
     continue
   fi
 
-  echo "  [$IDX] ${NARRACION:0:60}..."
-  edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRACION" --write-media "$AUDIO" 2>/dev/null
+  echo "  [$IDX] ${NARRATION_TEXT:0:60}..."
+  edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" --write-media "$AUDIO" 2>/dev/null
 
-  # El segmento dura lo que dure la voz, no lo que diga el JSON: `duration` es un
-  # piso, no un valor. Si la narración se alarga, la imagen la acompaña.
+  # The segment lasts as long as the voice does, not as long as the JSON says:
+  # `duration` is a floor, not a value. If the narration runs long, the image follows.
   AUDIO_DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$AUDIO")
   SEGMENT_DURATION=$(python3 -c "print(max($AUDIO_DURATION + 0.5, $DURATION))")
 
@@ -89,26 +90,26 @@ for i in $(seq 0 $((ENTRIES - 1))); do
     -shortest \
     "$SEGMENT" 2>/dev/null
 
-  # realpath: SCREENSHOTS puede venir relativo, y el concat de ffmpeg lo resuelve
-  # contra el archivo de lista, no contra el cwd.
+  # realpath: SCREENSHOTS may arrive relative, and ffmpeg's concat resolves paths
+  # against the list file, not against the cwd.
   echo "file '$(realpath "$SEGMENT")'" >> "$CONCAT_FILE"
 done
 
-# Sin esta guarda, ffmpeg recibe una lista vacía y devuelve un error suyo en lugar
-# de decir lo que pasó: no había ninguna captura.
+# Without this guard ffmpeg gets an empty list and returns its own error instead of
+# saying what actually happened: there were no screenshots.
 if [ ! -s "$CONCAT_FILE" ]; then
-  echo "No hay segmentos que concatenar: faltan las $ENTRIES capturas."
-  echo "¿Corrió la captura antes que esto?"
+  echo "Nothing to concatenate: all $ENTRIES screenshots are missing."
+  echo "Did the capture step run before this?"
   exit 1
 fi
 
-echo "Concatenando $((ENTRIES - FALTANTES)) segmentos..."
+echo "Concatenating $((ENTRIES - MISSING)) segments..."
 ffmpeg -y -f concat -safe 0 -i "$CONCAT_FILE" -c copy "$OUTPUT" 2>/dev/null
 
 rm -rf "$AUDIO_DIR" "$SEGMENTS_DIR"
 
 DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUTPUT" | cut -d. -f1)
 SIZE=$(du -h "$OUTPUT" | cut -f1)
-echo "Listo: $OUTPUT  (${DUR}s, $SIZE)"
-[ "$FALTANTES" -gt 0 ] && echo "Ojo: $FALTANTES capturas faltaron y no están en el video."
+echo "Done: $OUTPUT  (${DUR}s, $SIZE)"
+[ "$MISSING" -gt 0 ] && echo "Heads up: $MISSING screenshots were missing and are not in the video."
 exit 0

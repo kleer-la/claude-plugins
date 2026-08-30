@@ -1,54 +1,53 @@
-# Receta Rails (Capybara + Selenium)
+# Rails recipe (Capybara + Selenium)
 
-Copiá `video_recording.rb` a `test/support/`.
+Copy `video_recording.rb` into `test/support/`.
 
 ```ruby
-class AltaVideoTest < ApplicationSystemTestCase
+class CheckoutVideoTest < ApplicationSystemTestCase
   include VideoRecording
   driven_by :selenium, using: :headless_chrome, screen_size: [1280, 800]
 
-  def scenario_name = "alta"
+  def scenario_name = "checkout"
 
-  test "alta de un pedido" do
+  test "placing an order" do
     setup_video_recording
     visit root_path
-    capture "inicio"
+    capture "start"
     capture "total", highlight: "#total", scroll: "css:#total"
   end
 end
 ```
 
-Capturas en `tmp/video_screenshots/<scenario_name>/`. **El MP4 no puede quedar
-ahí** — `setup_video_recording` hace `rm -rf` del directorio.
+Screenshots go to `tmp/video_screenshots/<scenario_name>/`. **The MP4 cannot stay there** —
+`setup_video_recording` does `rm -rf` on that directory.
 
-| Opción | Qué hace |
+| Option | What it does |
 |---|---|
-| `highlight:` | Recuadro rojo, uno o varios selectores. Falla si no matchea. |
-| `focus:` | Fotografía sólo ese elemento. **Sin padding** — ver abajo. |
+| `highlight:` | Red box, one or more selectors. Raises if it does not match. |
+| `focus:` | Photographs only that element. **No padding** — see below. |
 | `scroll:` | `:top` \| `:bottom` \| Integer \| `"css:<selector>"`. |
-| `pause:` | Espera antes del disparo (default 0.4). |
+| `pause:` | Wait before the shot (default 0.4). |
 
-## Diferencia con la receta Playwright
+`inject_csrf_meta` injects a dummy CSRF meta tag: Rails disables CSRF in the test
+environment so `csrf_meta_tags` renders nothing, yet some flows still expect the tag.
 
-`focus:` recorta a la caja exacta del elemento: Selenium saca la captura del
-elemento, no un recorte del viewport, así que no hay equivalente a `focusPad`. Si
-necesitás contexto alrededor, **enmarcá con `highlight:` en vez de recortar con
-`focus:`**.
+## Difference from the Playwright recipe
 
-Todo lo demás se comporta igual, a propósito.
+`focus:` crops to the element's exact box: Selenium takes an element screenshot, not a
+crop of the viewport, so there is no equivalent to `focusPad`. If you need context around
+it, **frame with `highlight:` instead of cropping with `focus:`**.
 
-## Correrlo
+Everything else behaves the same, on purpose.
 
-Los tests de video suelen ir detrás de un flag para que no corran en CI:
+## Running it
+
+Video tests usually sit behind a flag so they do not run in CI:
 
 ```ruby
-test "alta de un pedido" do
-  skip "sólo con RUN_VIDEO_TESTS=1" unless ENV["RUN_VIDEO_TESTS"]
+test "placing an order" do
+  skip "only with RUN_VIDEO_TESTS=1" unless ENV["RUN_VIDEO_TESTS"]
 ```
 
 ```bash
-docker exec -e RUN_VIDEO_TESTS=1 <container> bin/rails test test/system/alta_video_test.rb
+docker exec -e RUN_VIDEO_TESTS=1 <container> bin/rails test test/system/checkout_video_test.rb
 ```
-
-Si el entorno de test necesita el meta de CSRF presente (Rails lo deshabilita y
-`csrf_meta_tags` no renderiza nada), inyectá uno dummy después de navegar.

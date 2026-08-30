@@ -1,25 +1,24 @@
-# Capturas para video desde un system test de Rails (Capybara + Selenium).
+# Video captures from a Rails system test (Capybara + Selenium).
 #
-# Mismo contrato que la receta Playwright: PNGs `NN_nombre.png` en un directorio,
-# que después consume el motor. La paridad con `capture.ts` es a propósito —
-# `highlight:` y `scroll:` se comportan igual; `focus:` tiene una limitación,
-# documentada abajo.
+# Same contract as the Playwright recipe: `NN_name.png` files in a directory, which the
+# engine then consumes. The parity with `capture.ts` is deliberate — `highlight:` and
+# `scroll:` behave the same; `focus:` has one limitation, documented below.
 #
-# Uso:
-#   class AltaVideoTest < ApplicationSystemTestCase
+# Usage:
+#   class CheckoutVideoTest < ApplicationSystemTestCase
 #     include VideoRecording
 #     driven_by :selenium, using: :headless_chrome, screen_size: [1280, 800]
-#     def scenario_name = "alta"
+#     def scenario_name = "checkout"
 #
-#     test "alta de un pedido" do
+#     test "placing an order" do
 #       setup_video_recording
 #       visit root_path
-#       capture "inicio"
+#       capture "start"
 #       capture "total", highlight: "#total", scroll: "css:#total"
 #     end
 #   end
 module VideoRecording
-  HIGHLIGHT_ATTR  = "data-e2e-highlight".freeze
+  HIGHLIGHT_ATTR = "data-e2e-highlight".freeze
   HIGHLIGHT_STYLE_ID = "e2e-highlight-style".freeze
   HIGHLIGHT_CSS = <<~CSS.freeze
     [#{HIGHLIGHT_ATTR}] {
@@ -30,9 +29,9 @@ module VideoRecording
     }
   CSS
 
-  # Nombre del escenario — las capturas van a tmp/video_screenshots/<escenario>/
+  # Scenario name — captures go to tmp/video_screenshots/<scenario>/
   def scenario_name
-    raise NotImplementedError, "definí scenario_name en la clase del test"
+    raise NotImplementedError, "define scenario_name in the test class"
   end
 
   def screenshot_dir
@@ -45,46 +44,59 @@ module VideoRecording
     @step = 0
   end
 
-  # scroll:    :bottom | :top | Integer (píxeles) | "css:<selector>"
-  # highlight: selector o array de selectores — recuadro rojo durante el disparo.
-  # focus:     selector — fotografía sólo ese elemento.
-  #            Ojo: Selenium recorta a la caja exacta, sin el aire que da
-  #            `focusPad` en Playwright. Si necesitás contexto alrededor,
-  #            enmarcá con highlight: en vez de recortar con focus:.
+  # scroll:    :bottom | :top | Integer (pixels) | "css:<selector>"
+  # highlight: selector or array of selectors — red box during the shot.
+  # focus:     selector — photographs only that element.
+  #            Note: Selenium crops to the exact box, without the air that `focusPad`
+  #            gives in Playwright. If you need context around it, frame with
+  #            highlight: instead of cropping with focus:.
   def capture(name, pause: 0.4, scroll: nil, highlight: nil, focus: nil)
-    aplicar_scroll(scroll) if scroll
-    marcas = Array(highlight)
-    marcar(marcas) if marcas.any?
+    apply_scroll(scroll) if scroll
+    marks = Array(highlight)
+    highlight_on(marks) if marks.any?
 
     sleep pause
     @step += 1
     filename = format("%02d_%s.png", @step, name)
-    destino = screenshot_dir.join(filename)
+    target = screenshot_dir.join(filename)
 
     if focus
-      el = find(focus)
-      el.native.save_screenshot(destino.to_s)
+      find(focus).native.save_screenshot(target.to_s)
     else
-      page.save_screenshot(destino)
+      page.save_screenshot(target)
     end
 
-    desmarcar if marcas.any?
+    highlight_off if marks.any?
     filename
+  end
+
+  # Injects a dummy CSRF meta tag. Rails disables CSRF in the test environment, so
+  # `csrf_meta_tags` renders nothing — but some flows still expect the tag to be there.
+  # Call it after navigating.
+  def inject_csrf_meta
+    page.execute_script(<<~JS)
+      if (!document.querySelector("meta[name='csrf-token']")) {
+        const m = document.createElement("meta");
+        m.setAttribute("name", "csrf-token");
+        m.setAttribute("content", "test-token");
+        document.head.appendChild(m);
+      }
+    JS
   end
 
   private
 
-  def aplicar_scroll(scroll)
+  def apply_scroll(scroll)
     case scroll
     when :bottom then page.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-    when :top    then page.execute_script("window.scrollTo(0, 0)")
+    when :top then page.execute_script("window.scrollTo(0, 0)")
     when Integer then page.execute_script("window.scrollBy(0, arguments[0])", scroll)
     when /\Acss:(.+)\z/ then find(Regexp.last_match(1)).execute_script("arguments[0].scrollIntoView({block: 'center'})")
-    else raise ArgumentError, "scroll no reconocido: #{scroll.inspect}"
+    else raise ArgumentError, "unrecognized scroll: #{scroll.inspect}"
     end
   end
 
-  def marcar(selectores)
+  def highlight_on(selectors)
     page.execute_script(<<~JS, HIGHLIGHT_STYLE_ID, HIGHLIGHT_CSS)
       if (!document.getElementById(arguments[0])) {
         const s = document.createElement("style");
@@ -93,15 +105,14 @@ module VideoRecording
         document.head.appendChild(s);
       }
     JS
-    selectores.each do |sel|
-      # Falla ruidosa: un highlight que no matchea es narración que apunta a algo
-      # que ya no está en la pantalla — justo el cambio que el video debe delatar.
-      el = find(sel)
-      el.execute_script("arguments[0].setAttribute(arguments[1], '1')", HIGHLIGHT_ATTR)
+    selectors.each do |sel|
+      # Loud failure on purpose: a highlight that does not match is narration pointing at
+      # something no longer on the screen — exactly the change the video exists to catch.
+      find(sel).execute_script("arguments[0].setAttribute(arguments[1], '1')", HIGHLIGHT_ATTR)
     end
   end
 
-  def desmarcar
+  def highlight_off
     page.execute_script(<<~JS, HIGHLIGHT_ATTR)
       document.querySelectorAll("[" + arguments[0] + "]")
         .forEach((el) => el.removeAttribute(arguments[0]));

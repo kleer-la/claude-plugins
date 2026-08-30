@@ -1,33 +1,25 @@
-# Voces
+# Voices
 
-El país es un parámetro, no una decisión de código. `edge-tts` es gratis y sin
-API key; el motor le pasa `--voice` y listo.
+The country is a parameter, not a code decision. `edge-tts` is free and needs no API key;
+the engine passes `--voice` and that is it.
 
-## Los que usamos
+## Picking one
 
-| País | Voz | Dónde |
-|---|---|---|
-| Argentina | `es-AR-ElenaNeural` | cenped, crm, kydat-poc |
-| Colombia | `es-CO-SalomeNeural` | jaomai |
-| Paraguay | `es-PY-TaniaNeural` | disponible, todavía sin usar |
+```json
+{ "defaults": { "voice": "es-AR-ElenaNeural" } }
+```
 
-**Paraguay no necesita fallback.** `es-PY` existe en edge-tts (Tania, Mario).
+`VOICE=` in the environment overrides the config, so you can render the same flow in
+another accent without editing anything.
 
-## Otros idiomas en uso
+## Rate
 
-| Idioma | Voz |
-|---|---|
-| Inglés (US) | `en-US-JennyNeural` |
-| Chino (mandarín) | `zh-CN-XiaoxiaoNeural` |
+`RATE` adjusts the speed (`+8%` is a good starting point). Slightly faster sounds less
+robotic over long narration.
 
-## Ritmo
+## Every Spanish voice
 
-`RATE` ajusta la velocidad (`+8%` en cenped, sin ajuste en el resto). Un poco
-más rápido se escucha menos robótico en narración larga.
-
-## Todas las voces en español
-
-Verificadas contra `edge-tts --list-voices` el 2026-08-30:
+Verified against `edge-tts --list-voices` on 2026-08-30:
 
 ```
 es-AR-ElenaNeural
@@ -77,8 +69,19 @@ es-VE-PaolaNeural
 es-VE-SebastianNeural
 ```
 
-Para ver la lista completa y actualizada:
+Note that every Spanish-speaking country has a voice, including `es-PY`. No fallbacks
+needed.
+
+## Other languages
+
+`en-US-JennyNeural`, `en-GB-SoniaNeural`, `zh-CN-XiaoxiaoNeural`, and so on. For the full,
+current list:
 
 ```bash
-edge-tts --list-voices | grep -E "^es-"
+edge-tts --list-voices
 ```
+
+## Multiple languages for one flow
+
+One narration file per language, same `screenshot` keys, same number of entries. See
+[narration.md](narration.md).

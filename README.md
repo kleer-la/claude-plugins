@@ -1,7 +1,6 @@
-# Plugins de Claude Code de Kleer
+# Kleer's Claude Code plugins
 
-Marketplace del equipo. Se agrega una vez y los plugins que vengan después
-aparecen solos.
+The team marketplace. Add it once, and plugins added later show up on their own.
 
 ```
 /plugin marketplace add kleer-la/claude-plugins
@@ -10,16 +9,16 @@ aparecen solos.
 
 ## Plugins
 
-| Plugin | Qué hace |
+| Plugin | What it does |
 |---|---|
-| [`e2e-video-doc`](plugins/e2e-video-doc/) | Recorre la app como un usuario real y produce un video narrado, capturas y el detalle de las llamadas a la API. El recorrido es un test E2E: si se rompe, la pantalla cambió. |
+| [`e2e-video-doc`](plugins/e2e-video-doc/) | Walks your app like a real user and produces a narrated video, screenshots, and the detail of each API call. The walkthrough is an E2E test: when it breaks, the screen changed. |
 
-## Agregar un plugin
+## Adding a plugin
 
-1. `plugins/<nombre>/.claude-plugin/plugin.json` con `name`, `version`, `description`, `author`
-2. Los skills en `plugins/<nombre>/skills/<skill>/SKILL.md`
-3. Una entrada en `.claude-plugin/marketplace.json` con `"source": "./plugins/<nombre>"`
+1. `plugins/<name>/.claude-plugin/plugin.json` with `name`, `version`, `description`, `author`
+2. Skills in `plugins/<name>/skills/<skill>/SKILL.md`
+3. An entry in `.claude-plugin/marketplace.json` with `"source": "./plugins/<name>"`
 
-Si alguno crece hasta merecer repo propio, la entrada cambia a
-`{"source": "url", "url": "https://github.com/kleer-la/<repo>.git"}` y del lado
-de quien lo tiene instalado no cambia nada.
+If one ever grows enough to deserve its own repository, the entry becomes
+`{"source": "url", "url": "https://github.com/kleer-la/<repo>.git"}` and nothing changes
+for anyone who has it installed.

@@ -1,57 +1,56 @@
 #!/usr/bin/env bash
 #
-# Orquesta un flujo completo: captura y después arma el video.
+# Runs one flow end to end: capture, then assemble.
 #
-# Lee `e2e-video-doc.json` de la raíz del proyecto — lo único que hay que escribir
-# por proyecto. Ver reference/config.md.
+# Reads `e2e-video-doc.json` from the project root — the only thing you write per
+# project. See reference/config.md.
 #
-# Uso:
-#   bash run.sh <flujo> [--solo-armar]
-#   VOICE=es-CO-SalomeNeural bash run.sh alta
+# Usage:
+#   bash run.sh <flow> [--assemble-only]
+#   VOICE=es-CO-SalomeNeural bash run.sh checkout
 
 set -euo pipefail
 
-FLOW="${1:?uso: run.sh <flujo> [--solo-armar]}"
-SOLO_ARMAR="${2:-}"
+FLOW="${1:?usage: run.sh <flow> [--assemble-only]}"
+ASSEMBLE_ONLY="${2:-}"
 
 ENGINE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# La config manda dónde está la raíz: se busca hacia arriba desde el cwd.
+# The config decides where the root is: searched upward from the cwd.
 DIR="$PWD"
 while [ "$DIR" != "/" ] && [ ! -f "$DIR/e2e-video-doc.json" ]; do
   DIR="$(dirname "$DIR")"
 done
 CONFIG="$DIR/e2e-video-doc.json"
-[ -f "$CONFIG" ] || { echo "No encontré e2e-video-doc.json desde $PWD hacia arriba."; exit 1; }
+[ -f "$CONFIG" ] || { echo "No e2e-video-doc.json found from $PWD upward."; exit 1; }
 ROOT="$DIR"
 
-campo() {
-  # Primero el override del flujo, si no el default, con {flow} reemplazado.
-  local clave="$1"
-  local valor
-  valor=$(jq -r --arg f "$FLOW" --arg k "$clave" \
-    '(.flows[$f][$k] // .defaults[$k] // empty)' "$CONFIG")
-  [ -n "$valor" ] || { echo "Falta '$clave' para el flujo '$FLOW' en $CONFIG" >&2; exit 1; }
-  echo "${valor//\{flow\}/$FLOW}"
-}
-
 jq -e --arg f "$FLOW" '.flows[$f]' "$CONFIG" >/dev/null 2>&1 || {
-  echo "El flujo '$FLOW' no está en $CONFIG. Definidos:"
+  echo "Flow '$FLOW' is not in $CONFIG. Defined:"
   jq -r '.flows | keys[]' "$CONFIG" | sed 's/^/  - /'
   exit 1
 }
 
-CAPTURE=$(campo capture)
-SCREENSHOTS="$ROOT/$(campo screenshots)"
-NARRATION="$ROOT/$(campo narration)"
-OUTPUT="$ROOT/$(campo output)"
-VOICE="${VOICE:-$(jq -r --arg f "$FLOW" '(.flows[$f].voice // .defaults.voice // "es-AR-ElenaNeural")' "$CONFIG")}"
+field() {
+  # Flow override first, then the default, with {flow} substituted.
+  local key="$1" value
+  value=$(jq -r --arg f "$FLOW" --arg k "$key" \
+    '(.flows[$f][$k] // .defaults[$k] // empty)' "$CONFIG")
+  [ -n "$value" ] || { echo "Missing '$key' for flow '$FLOW' in $CONFIG" >&2; exit 1; }
+  echo "${value//\{flow\}/$FLOW}"
+}
 
-if [ "$SOLO_ARMAR" != "--solo-armar" ]; then
-  echo "▶ $FLOW — capturando"
-  ( cd "$ROOT" && eval "${CAPTURE//\{flow\}/$FLOW}" )
+CAPTURE=$(field capture)
+SCREENSHOTS="$ROOT/$(field screenshots)"
+NARRATION="$ROOT/$(field narration)"
+OUTPUT="$ROOT/$(field output)"
+VOICE="${VOICE:-$(jq -r --arg f "$FLOW" '(.flows[$f].voice // .defaults.voice // "en-US-JennyNeural")' "$CONFIG")}"
+
+if [ "$ASSEMBLE_ONLY" != "--assemble-only" ]; then
+  echo "> $FLOW — capturing"
+  ( cd "$ROOT" && eval "$CAPTURE" )
 fi
 
-echo "▶ $FLOW — narrando y armando"
+echo "> $FLOW — narrating and assembling"
 NARRATION="$NARRATION" SCREENSHOTS="$SCREENSHOTS" OUTPUT="$OUTPUT" VOICE="$VOICE" \
   bash "$ENGINE_DIR/make_video.sh"

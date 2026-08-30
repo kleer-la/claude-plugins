@@ -7,9 +7,13 @@ export function resetDir(dir: string): void {
   mkdirSync(dir, { recursive: true });
 }
 
-/** Local IIS often shows the DevExpress trial strip. Close it so demos look clean. */
-export async function dismissDxTrial(page: Page): Promise<void> {
-  const close = page.locator('img[alt="Close"]').first();
+/**
+ * Closes a trial or environment banner so the video shows the product, not the
+ * scaffolding. Point it at whatever your stack puts on top of the page — a component
+ * library's trial strip, a staging ribbon, a debug bar.
+ */
+export async function dismissBanner(page: Page, selector: string): Promise<void> {
+  const close = page.locator(selector).first();
   try {
     await close.click({ timeout: 2500 });
     await page.waitForTimeout(200);
@@ -20,9 +24,9 @@ export async function dismissDxTrial(page: Page): Promise<void> {
 
 type Scroll = "bottom" | "top" | number | `css:${string}`;
 
-/** Recuadro que se dibuja sobre lo que la narración está señalando. Se saca después del
- *  disparo, así que no ensucia el paso siguiente. En un video a tamaño completo una celda
- *  no se encuentra sola: o se la enmarca, o se recorta la imagen alrededor. */
+/** Box drawn over whatever the narration is pointing at. Removed after the shot, so it
+ *  does not leak into the next step. At full size a single cell cannot be found on its
+ *  own: either you frame it, or you crop the image around it. */
 const HIGHLIGHT_ATTR = "data-e2e-highlight";
 const HIGHLIGHT_STYLE_ID = "e2e-highlight-style";
 const HIGHLIGHT_CSS = `
@@ -33,9 +37,10 @@ const HIGHLIGHT_CSS = `
   border-radius: 3px;
 }`;
 
-async function marcar(page: Page, selectores: string[]): Promise<void> {
-  // Por locator y no por document.querySelector: los selectores de Playwright (:has-text,
-  // :text) no son CSS y el DOM no los entiende. Pasando por el locator valen los dos.
+async function highlightOn(page: Page, selectors: string[]): Promise<void> {
+  // Through the locator and not document.querySelector: Playwright selectors
+  // (:has-text, :text) are not CSS and the DOM does not understand them. Going
+  // through the locator accepts both.
   await page.evaluate(
     ([styleId, css]) => {
       if (document.getElementById(styleId as string)) return;
@@ -46,14 +51,16 @@ async function marcar(page: Page, selectores: string[]): Promise<void> {
     },
     [HIGHLIGHT_STYLE_ID, HIGHLIGHT_CSS] as const,
   );
-  for (const sel of selectores) {
+  for (const sel of selectors) {
     const loc = page.locator(sel).first();
-    if (!(await loc.count())) throw new Error(`highlight sin match: ${sel}`);
+    // Loud failure on purpose: a highlight that does not match is narration pointing at
+    // something no longer on the screen — exactly the change the video exists to catch.
+    if (!(await loc.count())) throw new Error(`highlight did not match: ${sel}`);
     await loc.evaluate((el, attr) => el.setAttribute(attr, "1"), HIGHLIGHT_ATTR);
   }
 }
 
-async function desmarcar(page: Page): Promise<void> {
+async function highlightOff(page: Page): Promise<void> {
   await page.evaluate((attr) => {
     document.querySelectorAll(`[${attr}]`).forEach((el) => el.removeAttribute(attr));
   }, HIGHLIGHT_ATTR);
@@ -67,9 +74,9 @@ export function createCapture(page: Page, dir: string) {
       pauseMs?: number;
       scroll?: Scroll;
       fullPage?: boolean;
-      /** Selectores a enmarcar en rojo durante el disparo. */
+      /** Selectors to frame in red during the shot. */
       highlight?: string | string[];
-      /** Recorta la imagen alrededor de este selector, con `focusPad` px de aire. */
+      /** Crops the image around this selector, with `focusPad` px of air. */
       focus?: string;
       focusPad?: number;
     },
@@ -89,7 +96,7 @@ export function createCapture(page: Page, dir: string) {
         ? opts.highlight
         : [opts.highlight]
       : [];
-    if (highlight.length) await marcar(page, highlight);
+    if (highlight.length) await highlightOn(page, highlight);
 
     await page.waitForTimeout(opts?.pauseMs ?? 400);
     step += 1;
@@ -97,27 +104,27 @@ export function createCapture(page: Page, dir: string) {
 
     let clip: { x: number; y: number; width: number; height: number } | undefined;
     if (opts?.focus) {
-      const caja = await page.locator(opts.focus).first().boundingBox();
-      if (!caja) throw new Error(`focus sin caja: ${opts.focus}`);
+      const box = await page.locator(opts.focus).first().boundingBox();
+      if (!box) throw new Error(`focus has no box: ${opts.focus}`);
       const pad = opts.focusPad ?? 40;
       const vp = page.viewportSize() ?? { width: 1280, height: 800 };
-      const x = Math.max(0, caja.x - pad);
-      const y = Math.max(0, caja.y - pad);
+      const x = Math.max(0, box.x - pad);
+      const y = Math.max(0, box.y - pad);
       clip = {
         x,
         y,
-        width: Math.min(caja.width + pad * 2, vp.width - x),
-        height: Math.min(caja.height + pad * 2, vp.height - y),
+        width: Math.min(box.width + pad * 2, vp.width - x),
+        height: Math.min(box.height + pad * 2, vp.height - y),
       };
     }
 
     await page.screenshot({
       path: join(dir, filename),
-      // clip y fullPage no conviven: recortar implica mirar el viewport.
+      // clip and fullPage do not coexist: cropping means looking at the viewport.
       fullPage: clip ? undefined : opts?.fullPage,
       clip,
     });
-    if (highlight.length) await desmarcar(page);
+    if (highlight.length) await highlightOff(page);
     return filename;
   };
 }

@@ -1,20 +1,20 @@
 # `e2e-video-doc.json`
 
-Lo único que se escribe por proyecto. Va en la raíz del repo, versionado.
+The only thing you write per project. Lives at the repo root, committed.
 
 ```json
 {
   "defaults": {
-    "voice": "es-AR-ElenaNeural",
+    "voice": "en-US-JennyNeural",
     "screenshots": "tmp/video_screenshots/{flow}",
     "narration": "scripts/{flow}_video_narration.json",
     "output": "public/videos/{flow}.mp4"
   },
   "flows": {
-    "alta": {
-      "capture": "docker exec mi_devcontainer-app-1 bin/rails test test/system/{flow}_video_test.rb"
+    "checkout": {
+      "capture": "docker exec my_devcontainer-app-1 bin/rails test test/system/{flow}_video_test.rb"
     },
-    "cierre": {
+    "onboarding": {
       "capture": "npx playwright test tests/{flow}.video.spec.ts",
       "voice": "es-CO-SalomeNeural"
     }
@@ -22,23 +22,23 @@ Lo único que se escribe por proyecto. Va en la raíz del repo, versionado.
 }
 ```
 
-`{flow}` se reemplaza por el nombre del flujo. Cada flujo pisa lo que necesite
-de `defaults`; en general sólo define `capture`.
+`{flow}` is replaced with the flow name. Each flow overrides whatever it needs from
+`defaults`; usually it only defines `capture`.
 
-| Clave | Qué es |
+| Key | What it is |
 |---|---|
-| `capture` | El comando que corre el recorrido y deja los PNGs. **Del proyecto**: su stack, su devcontainer, sus fixtures. |
-| `screenshots` | Dónde los deja (relativo a la raíz del repo). |
-| `narration` | El JSON de narración de ese flujo. Ver [narration.md](narration.md). |
-| `output` | Dónde va el MP4. **Fuera de `tmp/`** — ver [gotchas.md](gotchas.md). |
-| `voice` | Ver [voices.md](voices.md). `VOICE=` en el entorno lo pisa. |
+| `capture` | The command that runs the walkthrough and leaves the PNGs. **Yours**: your stack, your devcontainer, your fixtures. Runs from the repo root. |
+| `screenshots` | Where it leaves them, relative to the repo root. |
+| `narration` | The narration JSON for that flow. See [narration.md](narration.md). |
+| `output` | Where the MP4 goes. **Outside `tmp/`** — see [gotchas.md](gotchas.md). |
+| `voice` | See [voices.md](voices.md). `VOICE=` in the environment overrides it. |
 
-## Por qué el capture no lo trae el plugin
+## Why the plugin does not ship the capture step
 
-Porque usa los factories, el login helper y los datos sembrados del proyecto — y
-tiene que envejecer con él. **Eso es el feature**: si la pantalla cambia y el
-recorrido se rompe, el video falla como falla un test E2E, y por eso la
-documentación no puede quedar desactualizada en silencio.
+Because it uses your factories, your login helper and your seeded data — and it has to age
+with the project. **That is the feature**: when the screen changes and the walkthrough
+breaks, the video fails the way an E2E test fails, which is why the documentation cannot
+go stale in silence.
 
-El plugin trae el motor, el contrato y las recetas. El recorrido lo escribe cada
-proyecto — con ayuda del skill, en el stack que ya tiene.
+The plugin brings the engine, the contract and the recipes. The walkthrough is written per
+project, in the stack it already has.

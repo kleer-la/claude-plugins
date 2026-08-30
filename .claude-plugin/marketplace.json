@@ -8,7 +8,7 @@
     {
       "name": "e2e-video-doc",
       "source": "./plugins/e2e-video-doc",
-      "description": "Recorre la aplicación como un usuario real y produce un video narrado, capturas y el detalle de las llamadas a la API. El recorrido es un test E2E: si se rompe, la pantalla cambió.",
+      "description": "Walks the application like a real user and produces a narrated video, screenshots and the detail of each API call. The walkthrough is an E2E test: when it breaks, the screen changed.",
       "version": "0.1.0"
     }
   ]
