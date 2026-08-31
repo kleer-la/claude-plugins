@@ -73,6 +73,15 @@ Both `run.sh` and the Windows path export these before running your command:
 |---|---|
 | `RUN_VIDEO_TESTS=1` | The flag video specs sit behind so a normal test run skips them. |
 | `E2E_VIDEO_DOC_ENGINE` | Absolute path to the plugin's `engine/`, so `capture` can call its helpers. |
+| `SCREENSHOTS` | The resolved screenshots directory, for a capture step that has to add a frame of its own. |
+
+`SCREENSHOTS` matters when something besides the browser contributes a frame — a title
+card, a rasterised PDF. Those have to be written **after** the walkthrough, which usually
+starts by emptying the directory:
+
+```json
+"capture": "docker exec ... bin/rails test test/system/{flow}_video_test.rb && LANG_CODE={lang} bash scripts/title_cards.sh \"$SCREENSHOTS\""
+```
 
 The one you will actually use is `devcontainer.sh`, which finds the container by the
 repo it serves instead of by a name that changes underneath you — see

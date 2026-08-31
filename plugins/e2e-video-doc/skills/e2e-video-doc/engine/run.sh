@@ -97,7 +97,10 @@ if [ -z "$ASSEMBLE_ONLY" ]; then
   #   RUN_VIDEO_TESTS       the flag video specs sit behind, so a normal run skips them
   #   E2E_VIDEO_DOC_ENGINE  lets the capture command call the engine's helpers, e.g.
   #     docker exec "$(bash "$E2E_VIDEO_DOC_ENGINE/devcontainer.sh" web)" ...
-  ( cd "$ROOT" && export E2E_VIDEO_DOC_ENGINE="$ENGINE_DIR" RUN_VIDEO_TESTS=1 && eval "$CAPTURE" )
+  #   SCREENSHOTS           where the config says the PNGs go, for a capture step that
+  #     has to put something else in there too — a title card, a rasterised PDF
+  ( cd "$ROOT" && export E2E_VIDEO_DOC_ENGINE="$ENGINE_DIR" RUN_VIDEO_TESTS=1 \
+      SCREENSHOTS="$SCREENSHOTS" && eval "$CAPTURE" )
 fi
 
 echo "> $LABEL — narrating and assembling"
