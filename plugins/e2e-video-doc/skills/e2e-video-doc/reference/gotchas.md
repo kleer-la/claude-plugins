@@ -22,6 +22,23 @@ docker exec <container> bash -lc 'for c in edge-tts ffmpeg ffprobe jq; do printf
 Run the engine wherever all four are present. If they are nowhere, say which tool is
 missing where instead of installing system packages on your own.
 
+## The container name is not stable
+
+Compose derives it from the project name, which is the directory it was started from:
+`.devcontainer/` for "Reopen in Container", the repo directory for a manual
+`docker compose up`. Projects opened the same way collide — on one machine two unrelated
+repos both came up under the project `devcontainer`, and the container was called
+`devcontainer-web-1`, with nothing in the name to say which repo it served.
+
+A name hardcoded in `e2e-video-doc.json` goes stale in silence, and the capture step then
+fails with a docker error that says nothing about video. `engine/devcontainer.sh` resolves
+the service to a running container by **`working_dir`** — the path on disk identifies the
+repo, the project name does not:
+
+```json
+"capture": "docker exec \"$(bash \"$E2E_VIDEO_DOC_ENGINE/devcontainer.sh\" web)\" bin/rails test ..."
+```
+
 ## Windows
 
 The host has none of the three, but WSL Ubuntu does. **The engine does not need a
@@ -37,6 +54,29 @@ Two things in there that you will not work out from first principles:
 - `npm.ps1` is sometimes blocked by ExecutionPolicy: use `cmd /c npm ...`. For the
   plugin's own `.ps1` there is `make_videos.cmd`, which calls it with
   `-ExecutionPolicy Bypass`.
+
+## The skip guard goes in `setup`, not in the test body
+
+`setup_video_recording` starts with `rm -rf` on the screenshot directory. A guard placed
+in the test body runs *after* setup, so an ordinary `bin/rails test:system` skips the
+video test and **deletes the screenshots of the last real run on its way past** — and the
+next `--assemble-only` then has nothing to work with. Put it first in `setup`:
+
+```ruby
+setup do
+  skip "only with RUN_VIDEO_TESTS=1" unless ENV["RUN_VIDEO_TESTS"]
+  ...
+  setup_video_recording
+end
+```
+
+## The screen size is the window, not the shot
+
+The engine pads to 1920x1080 with `force_original_aspect_ratio=decrease`, so a capture
+that is not 16:9 lands inside white bands. Selenium's `screen_size` sets the **window**,
+and the browser chrome eats ~143px of it: `[1280, 720]` yields a 1280x577 shot and a
+letterboxed video. Ask for the height you want plus the chrome (`[1280, 863]` for a
+1280x720 frame), then check the PNG rather than trusting the number you asked for.
 
 ## The interface has to speak the same language as the voice
 

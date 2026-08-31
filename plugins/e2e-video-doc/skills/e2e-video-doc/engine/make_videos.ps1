@@ -73,6 +73,7 @@ if (-not $AssembleOnly) {
     Push-Location $Root
     try {
         $env:RUN_VIDEO_TESTS = "1"
+        $env:E2E_VIDEO_DOC_ENGINE = $PSScriptRoot
         # One flow per run: several video specs at once fight over shared state
         # (config flags, seeded data) and take twice as long.
         cmd /c (Field "capture")

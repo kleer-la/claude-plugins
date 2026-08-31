@@ -78,6 +78,7 @@ bug, say so before patching the script to step around it.
 |---|---|
 | `engine/make_video.sh` | The engine. Screenshots + narration → MP4. Driven entirely by the environment. |
 | `engine/run.sh` | Runs one flow from `e2e-video-doc.json`. |
+| `engine/devcontainer.sh` | Resolves a Compose service to the container actually running it. Container names drift; this does not. |
 | `engine/make_videos.ps1` `.cmd` | Windows: capture on the host, assemble in WSL. |
 | `engine/generate_title_cards.sh` | Opening and closing title cards. |
 | `recipes/playwright-node/` | `capture.ts` (highlight, focus, scroll) and `apiPanel.ts`. |

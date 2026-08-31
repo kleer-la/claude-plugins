@@ -22,7 +22,7 @@ export async function dismissBanner(page: Page, selector: string): Promise<void>
   }
 }
 
-type Scroll = "bottom" | "top" | number | `css:${string}`;
+type Scroll = "bottom" | "top" | number | `css:${string}` | `text:${string}`;
 
 /** Box drawn over whatever the narration is pointing at. Removed after the shot, so it
  *  does not leak into the next step. At full size a single cell cannot be found on its
@@ -90,6 +90,9 @@ export function createCapture(page: Page, dir: string) {
       await page.evaluate((n) => window.scrollBy(0, n), scroll);
     } else if (typeof scroll === "string" && scroll.startsWith("css:")) {
       await page.locator(scroll.slice(4)).first().scrollIntoViewIfNeeded();
+    } else if (typeof scroll === "string" && scroll.startsWith("text:")) {
+      // By visible text, for screens where nothing useful has a stable selector.
+      await page.getByText(scroll.slice(5)).first().scrollIntoViewIfNeeded();
     }
     const highlight = opts?.highlight
       ? Array.isArray(opts.highlight)

@@ -44,7 +44,7 @@ module VideoRecording
     @step = 0
   end
 
-  # scroll:    :bottom | :top | Integer (pixels) | "css:<selector>"
+  # scroll:    :bottom | :top | Integer (pixels) | "css:<selector>" | "text:<substring>"
   # highlight: selector or array of selectors — red box during the shot.
   # focus:     selector — photographs only that element.
   #            Note: Selenium crops to the exact box, without the air that `focusPad`
@@ -70,6 +70,17 @@ module VideoRecording
     filename
   end
 
+  # Closes whatever your stack puts on top of the page — a trial strip, a dev-environment
+  # bar, a notification prompt. The counterpart of `dismissBanner` in the Playwright
+  # recipe. Absent is fine: the walkthrough must not fail because the thing it was
+  # cleaning up is not there. Call it after navigating, before the first capture.
+  def dismiss_banner(selector)
+    find(selector, match: :first, wait: 2).click
+    sleep 0.2
+  rescue Capybara::ElementNotFound
+    # banner absent
+  end
+
   # Injects a dummy CSRF meta tag. Rails disables CSRF in the test environment, so
   # `csrf_meta_tags` renders nothing — but some flows still expect the tag to be there.
   # Call it after navigating.
@@ -91,9 +102,16 @@ module VideoRecording
     when :bottom then page.execute_script("window.scrollTo(0, document.body.scrollHeight)")
     when :top then page.execute_script("window.scrollTo(0, 0)")
     when Integer then page.execute_script("window.scrollBy(0, arguments[0])", scroll)
-    when /\Acss:(.+)\z/ then find(Regexp.last_match(1)).execute_script("arguments[0].scrollIntoView({block: 'center'})")
+    when /\Acss:(.+)\z/ then scroll_into_view(find(Regexp.last_match(1), match: :first, visible: :all))
+    when /\Atext:(.+)\z/
+      # By visible text, for screens where nothing useful has a stable selector.
+      scroll_into_view(find(:xpath, "//*[contains(text(), '#{Regexp.last_match(1)}')]", match: :first, visible: :all))
     else raise ArgumentError, "unrecognized scroll: #{scroll.inspect}"
     end
+  end
+
+  def scroll_into_view(element)
+    element.execute_script("arguments[0].scrollIntoView({block: 'center'})")
   end
 
   def highlight_on(selectors)

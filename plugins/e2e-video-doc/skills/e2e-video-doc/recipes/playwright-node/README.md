@@ -27,7 +27,7 @@ test("placing an order", { tag: "@video" }, async ({ page }) => {
 |---|---|
 | `highlight` | Red box over one or more selectors during the shot. Removed afterwards, so it does not leak into the next step. Throws if it does not match. |
 | `focus` / `focusPad` | Crops the image around a selector, with air. |
-| `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"`. |
+| `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"` \| `"text:<substring>"`. |
 | `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. |
 | `pauseMs` | Wait before the shot (default 400). |
 

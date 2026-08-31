@@ -14,6 +14,13 @@
 
 set -euo pipefail
 
+# Checked here, not only in make_video.sh: the config is read long before the engine runs.
+command -v jq >/dev/null || {
+  echo "jq is required to read e2e-video-doc.json."
+  echo "  Install: apt install jq (or brew install jq)"
+  exit 1
+}
+
 FLOW="${1:?usage: run.sh <flow> [lang] [--assemble-only]}"
 LANG_ARG=""
 ASSEMBLE_ONLY=""
@@ -86,7 +93,11 @@ LABEL="$FLOW${LANG_CODE:+ ($LANG_CODE)}"
 
 if [ -z "$ASSEMBLE_ONLY" ]; then
   echo "> $LABEL — capturing"
-  ( cd "$ROOT" && eval "$CAPTURE" )
+  # The same two the Windows path sets, so a config works on either:
+  #   RUN_VIDEO_TESTS       the flag video specs sit behind, so a normal run skips them
+  #   E2E_VIDEO_DOC_ENGINE  lets the capture command call the engine's helpers, e.g.
+  #     docker exec "$(bash "$E2E_VIDEO_DOC_ENGINE/devcontainer.sh" web)" ...
+  ( cd "$ROOT" && export E2E_VIDEO_DOC_ENGINE="$ENGINE_DIR" RUN_VIDEO_TESTS=1 && eval "$CAPTURE" )
 fi
 
 echo "> $LABEL — narrating and assembling"
