@@ -44,7 +44,23 @@ repo, the project name does not:
 The host has none of the three, but WSL Ubuntu does. **The engine does not need a
 rewrite**: `make_videos.ps1` captures on Windows and crosses into WSL to assemble.
 
-Two things in there that you will not work out from first principles:
+**A clone on Windows has CRLF line endings**, because `core.autocrlf=true` is the
+default there. Bash then fails on the engine's own shebang with `\r: command not found`,
+which names neither the file nor the cause. The repo's `.gitattributes` pins `*.sh` to
+`eol=lf`, and `make_videos.ps1` pipes the script through `tr -d '\r'` on the way into WSL
+so clones that already exist keep working. A capture command that calls a plugin script
+directly — `devcontainer.sh`, say — has nothing rescuing it, so it needs the
+`.gitattributes` to have been in place when the marketplace was cloned.
+
+**`cmd /c` does not expand `$VAR`.** The capture command runs through `cmd` on Windows,
+where the syntax is `%VAR%`. The variables themselves arrive intact — a capture *script*
+that reads `process.env.SCREENSHOTS` or `$env:SCREENSHOTS` works fine — but a capture
+*string* written as `"$(bash "$E2E_VIDEO_DOC_ENGINE/devcontainer.sh" web)"` is bash
+syntax and reaches the process as a literal. Config examples that interpolate inline are
+Linux and macOS only; on Windows, put the work in a script and let it read the
+environment itself.
+
+Two more things in there that you will not work out from first principles:
 
 - **Do not use `wsl wslpath`.** Going through PowerShell, `wsl.exe` eats the backslashes
   and the argument arrives as `C:UsersDev...`. It fails without saying why. The

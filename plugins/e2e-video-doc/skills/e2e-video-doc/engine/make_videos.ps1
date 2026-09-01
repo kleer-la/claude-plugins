@@ -103,7 +103,11 @@ $wslOutput    = Convert-ToWslPath $Output
 $wslScript    = Convert-ToWslPath (Join-Path $EngineDir "make_video.sh")
 
 Write-Host "> $Label - narrating and assembling in WSL ($Voice)"
-wsl bash -lc "VOICE='$Voice' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash '$wslScript'"
+# `tr -d '\r'`: a clone made with core.autocrlf=true - the Windows default - gives the
+# engine's .sh files CRLF endings, and bash dies on its own shebang with
+# "\r: command not found". .gitattributes fixes this at the source for fresh clones;
+# this rescues the ones that already exist, and is a no-op once they are LF.
+wsl bash -lc "VOICE='$Voice' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash <(tr -d '\r' < '$wslScript')"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""

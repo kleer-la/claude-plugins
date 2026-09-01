@@ -83,6 +83,11 @@ starts by emptying the directory:
 "capture": "docker exec ... bin/rails test test/system/{flow}_video_test.rb && LANG_CODE={lang} bash scripts/title_cards.sh \"$SCREENSHOTS\""
 ```
 
+These examples interpolate inline with `$VAR`, which is bash: on Windows the capture
+command goes through `cmd /c`, where the variables arrive but `$VAR` does not expand —
+see [gotchas.md](gotchas.md). A capture step that has to run on both writes a small
+script and reads the environment from inside it.
+
 The one you will actually use is `devcontainer.sh`, which finds the container by the
 repo it serves instead of by a name that changes underneath you — see
 [gotchas.md](gotchas.md), "the container name is not stable". Note that `docker exec`

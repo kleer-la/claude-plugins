@@ -1,0 +1,15 @@
+# The engine is bash, and half of it runs in WSL on Windows machines. A clone with
+# core.autocrlf=true (the Windows default) gives every .sh a CRLF line ending, and bash
+# then fails on its own shebang with "\r: command not found" — reported from a real
+# Windows run of make_videos.ps1.
+*.sh text eol=lf
+
+# The Windows half stays CRLF: PowerShell and cmd are what read these.
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+
+# Recipes are copied into projects and run by the project's own toolchain.
+*.rb text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.md text eol=lf
