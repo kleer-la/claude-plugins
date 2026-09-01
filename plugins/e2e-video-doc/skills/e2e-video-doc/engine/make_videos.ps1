@@ -6,13 +6,18 @@
 #
 #   .\make_videos.ps1 -Flow checkout
 #   .\make_videos.ps1 -Flow checkout -Lang en
+#   .\make_videos.ps1 -Flow checkout -CaptureOnly   # screenshots, no narration yet
+#   .\make_videos.ps1 -Flow checkout -AssembleOnly  # from the screenshots already there
 #   $env:VOICE = "en-GB-SoniaNeural"; .\make_videos.ps1 -Flow checkout
 
 param(
     [Parameter(Mandatory = $true)][string]$Flow,
     [string]$Lang,
-    [switch]$AssembleOnly
+    [switch]$AssembleOnly,
+    [switch]$CaptureOnly
 )
+
+if ($AssembleOnly -and $CaptureOnly) { throw "-AssembleOnly and -CaptureOnly are opposites; pick one." }
 
 $ErrorActionPreference = "Stop"
 $EngineDir = $PSScriptRoot
@@ -66,8 +71,6 @@ $Voice     = if ($env:VOICE) { $env:VOICE }
              else { "en-US-JennyNeural" }
 $Label     = if ($LangCode) { "$Flow ($LangCode)" } else { $Flow }
 
-if (-not (Test-Path $Narration)) { throw "No narration file: $Narration" }
-
 if (-not $AssembleOnly) {
     Write-Host "> $Label - capturing"
     Push-Location $Root
@@ -101,6 +104,20 @@ $wslShots     = Convert-ToWslPath $Shots
 $wslNarration = Convert-ToWslPath $Narration
 $wslOutput    = Convert-ToWslPath $Output
 $wslScript    = Convert-ToWslPath (Join-Path $EngineDir "make_video.sh")
+
+if ($CaptureOnly) {
+    Write-Host ""
+    Write-Host "OK: screenshots in $Shots"
+    Write-Host "Look at them before writing the narration - fixing the walkthrough is far"
+    Write-Host "cheaper before the audio exists. Then rerun without -CaptureOnly."
+    exit 0
+}
+
+# Checked here rather than up front: the narration is what assembling needs, and step 3
+# of the skill is to capture and look at the PNGs before writing it.
+if (-not (Test-Path $Narration)) {
+    throw "No narration file: $Narration`nCapture first with -CaptureOnly, then write it."
+}
 
 Write-Host "> $Label - narrating and assembling in WSL ($Voice)"
 # `tr -d '\r'`: a clone made with core.autocrlf=true - the Windows default - gives the

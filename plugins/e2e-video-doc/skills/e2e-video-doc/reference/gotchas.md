@@ -48,7 +48,12 @@ rewrite**: `make_videos.ps1` captures on Windows and crosses into WSL to assembl
 default there. Bash then fails on the engine's own shebang with `\r: command not found`,
 which names neither the file nor the cause. The repo's `.gitattributes` pins `*.sh` to
 `eol=lf`, and `make_videos.ps1` pipes the script through `tr -d '\r'` on the way into WSL
-so clones that already exist keep working. A capture command that calls a plugin script
+so clones that already exist keep working.
+
+**`.gitattributes` only reaches a fresh clone.** Git will not rewrite a working-tree file
+whose blob did not change, so `/plugin marketplace update` leaves an existing clone's
+`.sh` files CRLF — confirmed on a real machine. Re-add the marketplace, or in the clone:
+`git rm --cached -r . && git reset --hard`. A capture command that calls a plugin script
 directly — `devcontainer.sh`, say — has nothing rescuing it, so it needs the
 `.gitattributes` to have been in place when the marketplace was cloned.
 
@@ -134,6 +139,14 @@ The trimming is deliberate: a body of forty fields is forty fields nobody can re
 screen. `pickFields` keeps the keys the narration is pointing at and says how many were
 left out. `trimValue` shows the start of the credential, not the credential.
 
+## A throttled API answers 429 while you are filming it
+
+An API that allows one request per window per scope will start refusing as soon as the
+walkthrough runs at machine speed, and `apiPanel` faithfully documents an error that is
+not part of the story. Pace the calls — roughly 1.3s between them was enough on a v4 API
+that allows one per second — and remember the walkthrough re-runs per language, so the
+pacing cost is paid N times.
+
 ## Frame before you crop
 
 At full size a single cell cannot be found on its own: either you frame it
@@ -142,6 +155,23 @@ narration points at something the viewer cannot locate.
 
 **A `highlight:` that does not match must fail loudly.** It is narration pointing at
 something no longer on the screen — exactly the change the video exists to catch.
+
+**But a `highlight:` that matches the wrong thing passes silently.** It frames the first
+match, and a test that passes proves only that something matched. On a real run the box
+landed on the wrong row, because inbound and outbound records were numbered in separate
+sequences and both were "81". Only the PNG showed it. Make the selector identify one
+element, and check the frame.
+
+**A `scroll:` on a page that already fits is a no-op**, and returns a perfectly valid
+photograph of the top of the page. Nothing fails. If the narration says "further down",
+assert that `window.scrollY` actually moved.
+
+These two are why step 3 exists — *run only the capture and look at the PNGs* — and they
+are the two it catches that nothing else does.
+
+**`focus:` suits tall regions, `highlight:` suits wide ones.** Cropping a wide, short
+element — a table row — yields something like 1280x174, which the engine then pads into
+1920x1080 with enormous bands above and below.
 
 ## Borrow fixture data, and give it back
 

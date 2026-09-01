@@ -75,6 +75,7 @@ function statusText(status: number): string {
     400: "Bad Request",
     401: "Unauthorized",
     403: "Forbidden",
+    404: "Not Found",
     409: "Conflict",
     429: "Too Many Requests",
   };
@@ -125,9 +126,42 @@ function html(c: ApiCall): string {
   ${c.note ? `<div class="note">${esc(c.note)}</div>` : ""}`;
 }
 
+/** Below this the card's smallest text stops being readable in a 1080p frame. */
+const MIN_FIT_SCALE = 0.62;
+
+/** Scales the card down until it fits the frame, and refuses to shrink it past the point
+ *  of legibility. A card that overflows loses its LAST line first — which is exactly
+ *  where `pickFields` puts "… N more fields". The marker saying something was left out
+ *  is the first thing to disappear, and what remains looks complete. */
+async function fitToFrame(page: Page): Promise<void> {
+  const scale = await page.evaluate(() => {
+    const body = document.body;
+    body.style.transform = "";
+    body.style.width = "";
+    const needed = body.scrollHeight;
+    const available = window.innerHeight;
+    if (needed <= available) return 1;
+    const s = available / needed;
+    body.style.transformOrigin = "top left";
+    body.style.transform = `scale(${s})`;
+    // Widen as it shrinks, so the card still fills the frame instead of leaving a band.
+    body.style.width = `${100 / s}%`;
+    return s;
+  });
+
+  if (scale < MIN_FIT_SCALE) {
+    throw new Error(
+      `apiPanel: this card needs ${(1 / scale).toFixed(1)}x the frame height and would have ` +
+        `to shrink to ${Math.round(scale * 100)}% to fit, past the point of being readable. ` +
+        `Trim it with pickFields, shorten the note, or split the call across two cards.`,
+    );
+  }
+}
+
 /** Draws the card on the page, ready for `capture` to photograph it. */
 export async function showApiCall(page: Page, call: ApiCall): Promise<void> {
   await page.setContent(html(call), { waitUntil: "load" });
+  await fitToFrame(page);
 }
 
 /** Free-text card, for what is not an API call — a query result, a log line, a file. */
@@ -135,17 +169,16 @@ export async function showCard(
   page: Page,
   o: { description: string; label: string; text: string; note?: string; labels?: Partial<CardLabels> },
 ): Promise<void> {
-  await page.setContent(
-    html({
-      description: o.description,
-      method: "SQL",
-      url: o.label,
-      response: o.text,
-      note: o.note,
-      labels: o.labels,
-    }),
-    { waitUntil: "load" },
-  );
+  // Through showApiCall, not setContent: one path to draw a card, so the fit-to-frame
+  // check cannot be true of one kind of card and not the other.
+  await showApiCall(page, {
+    description: o.description,
+    method: "SQL",
+    url: o.label,
+    response: o.text,
+    note: o.note,
+    labels: o.labels,
+  });
 }
 
 /** JSON POST with an optional bearer credential. */

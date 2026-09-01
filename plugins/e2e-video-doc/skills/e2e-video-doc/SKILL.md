@@ -60,7 +60,10 @@ any were.
    matching recipe. Use the factories and helpers the project already has; do not seed
    data by hand if there is a seed.
 3. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
-   here is far cheaper than after the audio exists.
+   here is far cheaper than after the audio exists. Two failures pass the test and only
+   show up in the image: a `highlight:` that framed the *first* match rather than the
+   right one, and a `scroll:` that did nothing because the page already fitted.
+   On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
 4. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
    One entry per capture, in order.
 5. **Add the flow** to `e2e-video-doc.json`.
