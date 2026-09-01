@@ -24,6 +24,33 @@ turns them into a narrated MP4 with a synthetic voice.
 What comes out is not just a video: it is documentation that **fails when the product
 changes**, because the walkthrough is a real end-to-end test.
 
+## How this differs from prompt-to-video plugins
+
+`framecraft`, `demo-video` and `narrateai-demomaker` start from a description: you write a
+prompt, or lay the scenes out one by one, and the model renders what you said. Nothing
+compares the result against the product — the video is as true as the description was on
+the day someone wrote it.
+
+Here the video is a by-product of a test run. The walkthrough boots the app, signs in,
+fills the forms and navigates; every frame is a screenshot of the real screen at that
+moment.
+
+| | Prompt / scene driven | e2e-video-doc |
+|---|---|---|
+| Where the frames come from | What you described | What the app actually rendered |
+| Someone moves the button | The video still renders, now wrong | The walkthrough fails and the run stops |
+| Regenerating | Prompt again, review it again | `run.sh` — no model involved |
+| Needs a running app | No | Yes: the app, your fixtures, a login |
+| Where it fits | A product that does not exist yet, marketing cuts, anything that is not a screen | A flow that already ships and has to stay documented |
+
+The difference that matters is the failure mode, not the fidelity. A described video decays
+in silence: nobody notices the screen moved until a customer follows the video and cannot
+find the button. The same change here turns the walkthrough red, in CI, alongside the rest
+of the suite — the documentation breaks loudly instead of lying quietly.
+
+The price of that is real: this only works on a flow you can drive for real. When there is
+no app to click yet, those plugins do things this one cannot.
+
 ## What you need
 
 On whichever machine assembles the video:
