@@ -1,0 +1,63 @@
+:root {
+  color-scheme: light;
+  --ink: #1b1f24;
+  --muted: #66707b;
+  --line: #dfe4ea;
+  --accent: #2f6feb;
+  --ok: #1d6b3f;
+  --bg: #f5f7fa;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header {
+  background: #fff; border-bottom: 1px solid var(--line);
+  padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;
+}
+header h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+header .cart-count { color: var(--muted); font-size: 15px; }
+main { max-width: 1120px; margin: 0 auto; padding: 28px 32px 48px; }
+h2 { font-size: 17px; margin: 0 0 14px; }
+.layout { display: grid; grid-template-columns: 1fr 360px; gap: 26px; align-items: start; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 13px 18px; text-align: left; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.price, th.price { text-align: right; font-variant-numeric: tabular-nums; }
+.sku { color: var(--muted); font-size: 13px; font-family: ui-monospace, Consolas, monospace; }
+button {
+  font: inherit; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  padding: 7px 15px; border-radius: 7px; cursor: pointer;
+}
+button.ghost { background: #fff; color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.cart-body { padding: 18px; }
+.cart-line { display: flex; justify-content: space-between; padding: 7px 0; font-size: 15px; }
+.cart-empty { color: var(--muted); font-size: 15px; padding: 6px 0 2px; }
+#cart-total {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-top: 1px solid var(--line); margin-top: 12px; padding-top: 13px;
+  font-size: 21px; font-weight: 700;
+}
+label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 5px; }
+input {
+  width: 100%; font: inherit; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 7px; background: #fff;
+}
+.confirmation { padding: 26px 18px; text-align: center; }
+.confirmation .tick {
+  width: 46px; height: 46px; border-radius: 50%; background: #e8f5ed; color: var(--ok);
+  display: grid; place-items: center; margin: 0 auto 12px; font-size: 24px;
+}
+.confirmation .order-id {
+  font-family: ui-monospace, Consolas, monospace; font-size: 25px; font-weight: 700;
+  color: var(--ok); margin: 6px 0;
+}
+.badge {
+  display: inline-block; padding: 2px 10px; border-radius: 20px;
+  background: #e8f5ed; color: var(--ok); font-size: 12px; font-weight: 600;
+}
+.hidden { display: none; }

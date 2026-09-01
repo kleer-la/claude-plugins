@@ -1,0 +1,13 @@
+{
+  "defaults": {
+    "voice": "es-AR-ElenaNeural",
+    "screenshots": "tmp/video_screenshots/{flow}",
+    "narration": "scripts/{flow}_video_narration.json",
+    "output": "videos/{flow}.mp4"
+  },
+  "flows": {
+    "checkout": {
+      "capture": "npx playwright test tests/{flow}.video.spec.ts"
+    }
+  }
+}

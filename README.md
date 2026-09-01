@@ -52,6 +52,24 @@ Ask Claude for a video of a flow and the skill drives it. What it does, in order
 The one file you write per project is `e2e-video-doc.json` at the repo root. See
 [config](plugins/e2e-video-doc/skills/e2e-video-doc/reference/config.md).
 
+## What it costs
+
+The expensive part happens once. Regeneration is a bash script.
+
+| | Time | Model tokens |
+|---|---|---|
+| Try it on the sample app | ~10 minutes | Essentially none — `npm install`, then one command |
+| First flow in **your** app | An hour or two | Real. An agent has to learn your login, your fixtures, your screens |
+| Every regeneration after that | Minutes | **None.** `run.sh` is bash, ffmpeg and edge-tts; no model is involved |
+| Each extra language | One more capture run | **None** |
+
+That last row is the whole economics of it. A video recorded by hand is worth what it cost
+the day it was made and decays from there; this one costs its tokens once and then
+regenerates from a script for as long as the walkthrough keeps passing.
+
+If you are evaluating, start with [`examples/sample-app`](examples/sample-app/) — it is
+the ten-minute version and needs no project of your own.
+
 ## Where it has actually run
 
 Only the first column is a promise. The rest is what has been exercised on real projects,

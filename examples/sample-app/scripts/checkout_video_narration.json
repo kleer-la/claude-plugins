@@ -1,0 +1,32 @@
+[
+  {
+    "screenshot": "01_catalogo.png",
+    "duration": 7,
+    "narration": "Esta es la aplicación de ejemplo del plugin: un catálogo, un carrito y un pedido. Suficientemente chica para leerla entera, suficientemente real para que valga la pena filmarla."
+  },
+  {
+    "screenshot": "02_producto_elegido.png",
+    "duration": 6,
+    "narration": "El recuadro rojo lo dibuja el recorrido, no la aplicación. Sirve para que la narración pueda señalar algo y el espectador sepa exactamente qué mirar."
+  },
+  {
+    "screenshot": "03_carrito_con_articulos.png",
+    "duration": 7,
+    "narration": "Agregamos dos productos y el total se actualiza: trece mil setecientos. El mismo recuadro, ahora sobre el total, porque es de lo que habla esta línea."
+  },
+  {
+    "screenshot": "04_datos_del_cliente.png",
+    "duration": 6,
+    "narration": "Completamos el nombre del cliente. Hasta acá es una persona usando la aplicación, y cada paso quedó fotografiado."
+  },
+  {
+    "screenshot": "05_api_pedido_confirmado.png",
+    "duration": 10,
+    "narration": "Una llamada a la API no tiene nada que fotografiar. El plugin la dibuja como una tarjeta: qué se envió, qué respondió el servidor, y el aviso de que hay tres campos más que quedaron fuera de pantalla a propósito."
+  },
+  {
+    "screenshot": "06_pedido_confirmado.png",
+    "duration": 9,
+    "narration": "Y el pedido confirmado en pantalla. Este recorrido es un test end-to-end: cuando la pantalla cambie, se va a romper, y el video no va a envejecer en silencio."
+  }
+]

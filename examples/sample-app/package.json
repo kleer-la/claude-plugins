@@ -1,0 +1,13 @@
+{
+  "name": "e2e-video-doc-sample",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The smallest app worth filming: a shop with a list, a form, a state change and one API call.",
+  "scripts": {
+    "start": "node server.mjs",
+    "capture": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

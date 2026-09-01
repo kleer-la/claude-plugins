@@ -1,0 +1,46 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sample shop</title>
+<link rel="stylesheet" href="/styles.css">
+<header>
+  <h1>Sample shop</h1>
+  <span class="cart-count" id="cart-count">Carrito vacío</span>
+</header>
+<main>
+  <div class="layout">
+    <section>
+      <h2>Catálogo</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr><th>Producto</th><th>SKU</th><th class="price">Precio</th><th></th></tr>
+          </thead>
+          <tbody id="catalog"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside>
+      <h2>Tu pedido</h2>
+      <div class="card" id="cart-card">
+        <div class="cart-body">
+          <div id="cart-lines"><p class="cart-empty">Todavía no agregaste nada.</p></div>
+          <div id="cart-total"><span>Total</span><span id="total-amount">$ 0</span></div>
+          <label for="customer">Nombre</label>
+          <input id="customer" placeholder="Tu nombre">
+          <p style="margin:16px 0 0"><button id="place-order" disabled>Confirmar pedido</button></p>
+        </div>
+      </div>
+
+      <div class="card hidden" id="confirmation" style="margin-top:18px">
+        <div class="confirmation">
+          <div class="tick">✓</div>
+          <p style="margin:0;color:#66707b;font-size:14px">Pedido confirmado</p>
+          <p class="order-id" id="order-id"></p>
+          <p style="margin:4px 0 0"><span class="badge" id="order-status"></span></p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="/app.js"></script>
