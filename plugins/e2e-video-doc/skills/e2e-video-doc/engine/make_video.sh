@@ -51,10 +51,15 @@ done
 [ -f "$NARRATION_FILE" ] || { echo "No such narration file: $NARRATION_FILE"; exit 1; }
 [ -d "$SCREENSHOTS_DIR" ] || { echo "No such screenshots directory: $SCREENSHOTS_DIR"; exit 1; }
 
+TMP_ERR="$(mktemp)"
+trap 'rm -f "$TMP_ERR"' EXIT
+
 echo "Building video"
 echo "   Voice:       $VOICE"
 echo "   Narration:   $NARRATION_FILE"
 echo "   Screenshots: $SCREENSHOTS_DIR"
+# Said up front, so it is known before the first TTS call rather than only on success.
+echo "   Output:      $OUTPUT"
 
 # `$(dirname "$OUTPUT")`: the mp4 usually lands outside the screenshots directory —
 # see reference/gotchas.md, "the video cannot live in tmp/".
@@ -82,7 +87,15 @@ for i in $(seq 0 $((ENTRIES - 1))); do
   fi
 
   echo "  [$IDX] ${NARRATION_TEXT:0:60}..."
-  edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" --write-media "$AUDIO" 2>/dev/null
+  # stderr is kept, not discarded: edge-tts reaches the network, and a failure here used
+  # to end the run in silence — the last thing on screen was this line, with no error and
+  # no file. Quiet on success, loud on failure.
+  if ! edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" \
+       --write-media "$AUDIO" 2>"$TMP_ERR"; then
+    echo "edge-tts failed on entry $IDX. It needs network access; the voice name must exist." >&2
+    sed 's/^/  /' "$TMP_ERR" >&2
+    exit 1
+  fi
 
   # The segment lasts as long as the voice does, not as long as the JSON says:
   # `duration` is a floor, not a value. If the narration runs long, the image follows.
@@ -95,7 +108,11 @@ for i in $(seq 0 $((ENTRIES - 1))); do
     -c:a aac -b:a 128k \
     -t "$SEGMENT_DURATION" \
     -shortest \
-    "$SEGMENT" 2>/dev/null
+    "$SEGMENT" 2>"$TMP_ERR" || {
+      echo "ffmpeg failed building segment $IDX from $SCREENSHOT." >&2
+      tail -20 "$TMP_ERR" | sed 's/^/  /' >&2
+      exit 1
+    }
 
   # realpath: SCREENSHOTS may arrive relative, and ffmpeg's concat resolves paths
   # against the list file, not against the cwd.
@@ -111,7 +128,11 @@ if [ ! -s "$CONCAT_FILE" ]; then
 fi
 
 echo "Concatenating $((ENTRIES - MISSING)) segments..."
-ffmpeg -y -f concat -safe 0 -i "$CONCAT_FILE" -c copy "$OUTPUT" 2>/dev/null
+ffmpeg -y -f concat -safe 0 -i "$CONCAT_FILE" -c copy "$OUTPUT" 2>"$TMP_ERR" || {
+  echo "ffmpeg failed concatenating the segments." >&2
+  tail -20 "$TMP_ERR" | sed 's/^/  /' >&2
+  exit 1
+}
 
 rm -rf "$AUDIO_DIR" "$SEGMENTS_DIR"
 
