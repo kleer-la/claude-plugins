@@ -110,8 +110,10 @@ module VideoRecording
     end
   end
 
+  # `this`, not arguments[0]: Capybara's Element#execute_script applies the script with
+  # the element as the receiver, unlike page.execute_script where it would be passed in.
   def scroll_into_view(element)
-    element.execute_script("arguments[0].scrollIntoView({block: 'center'})")
+    element.execute_script("this.scrollIntoView({block: 'center'})")
   end
 
   def highlight_on(selectors)
@@ -126,7 +128,7 @@ module VideoRecording
     selectors.each do |sel|
       # Loud failure on purpose: a highlight that does not match is narration pointing at
       # something no longer on the screen — exactly the change the video exists to catch.
-      find(sel).execute_script("arguments[0].setAttribute(arguments[1], '1')", HIGHLIGHT_ATTR)
+      find(sel).execute_script("this.setAttribute(arguments[0], '1')", HIGHLIGHT_ATTR)
     end
   end
 
