@@ -28,14 +28,21 @@ RATE="${RATE:-+0%}"
 AUDIO_DIR="$SCREENSHOTS_DIR/audio"
 SEGMENTS_DIR="$SCREENSHOTS_DIR/segments"
 
+# The hint leads with the package manager the reader actually has: being told to
+# `apt install` on a Mac is one more translation between them and a working command.
+case "$(uname -s)" in
+  Darwin) PKG="brew install" ;;
+  *)      PKG="apt install" ;;
+esac
+
 for cmd in edge-tts ffmpeg ffprobe jq python3; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "Missing: $cmd"
     case $cmd in
       edge-tts) echo "  Install: pip install edge-tts" ;;
-      ffmpeg|ffprobe) echo "  Install: apt install ffmpeg (or brew install ffmpeg)" ;;
-      jq)       echo "  Install: apt install jq (or brew install jq)" ;;
-      python3)  echo "  Install: apt install python3" ;;
+      ffmpeg|ffprobe) echo "  Install: $PKG ffmpeg" ;;
+      jq)       echo "  Install: $PKG jq" ;;
+      python3)  echo "  Install: $PKG python3" ;;
     esac
     exit 1
   fi

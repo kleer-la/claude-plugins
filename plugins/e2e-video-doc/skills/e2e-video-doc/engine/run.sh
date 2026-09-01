@@ -17,7 +17,10 @@ set -euo pipefail
 # Checked here, not only in make_video.sh: the config is read long before the engine runs.
 command -v jq >/dev/null || {
   echo "jq is required to read e2e-video-doc.json."
-  echo "  Install: apt install jq (or brew install jq)"
+  case "$(uname -s)" in
+    Darwin) echo "  Install: brew install jq" ;;
+    *)      echo "  Install: apt install jq (or brew install jq)" ;;
+  esac
   exit 1
 }
 

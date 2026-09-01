@@ -8,6 +8,16 @@ video it produces is the one we can show people.
 
 ## Run it
 
+**Node 18 or newer.** Check first — an older one fails while building a native dependency
+and reports a `node-gyp` error that says nothing about the real problem:
+
+```bash
+node -v
+```
+
+If it is older (or `npx` is missing, which means Node is older than 8): `brew install node`,
+or use nvm.
+
 ```bash
 npm install
 npx playwright install chromium     # once, if you have never used Playwright here
@@ -21,6 +31,12 @@ The engine needs `edge-tts`, `ffmpeg`, `ffprobe`, `jq` and `python3`:
 
 ```bash
 for c in edge-tts ffmpeg ffprobe jq python3; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
+```
+
+```bash
+brew install ffmpeg jq        # macOS
+sudo apt install ffmpeg jq    # Debian/Ubuntu
+pip install edge-tts          # both
 ```
 
 To see just the screenshots, without narrating anything:

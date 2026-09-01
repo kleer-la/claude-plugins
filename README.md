@@ -32,8 +32,13 @@ On whichever machine assembles the video:
 for c in edge-tts ffmpeg ffprobe jq python3; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
 ```
 
-`pip install edge-tts`, and `apt install ffmpeg jq` (or `brew install ffmpeg jq`). The TTS
-is Microsoft Edge's, which needs no API key. On Windows these live in WSL, and the plugin
+```bash
+brew install ffmpeg jq        # macOS
+sudo apt install ffmpeg jq    # Debian/Ubuntu
+pip install edge-tts          # both
+```
+
+The TTS is Microsoft Edge's, which needs no API key. On Windows these live in WSL, and the plugin
 captures on the host and crosses the bridge to assemble — see the Windows section of
 [gotchas](plugins/e2e-video-doc/skills/e2e-video-doc/reference/gotchas.md).
 
