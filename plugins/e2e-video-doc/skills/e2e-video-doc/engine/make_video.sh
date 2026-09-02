@@ -64,7 +64,8 @@ for cmd in edge-tts ffmpeg ffprobe jq python3; do
     case $cmd in
       edge-tts) echo "  Usually a Python it was installed against is gone. Reinstall:" ;
                 echo "    pipx install --force edge-tts   # its own venv, survives Python upgrades" ;
-                echo "    # or: pip3 install --force-reinstall edge-tts" ;;
+                echo "  If a reinstall did not help, an older copy may be shadowing it:" ;
+                echo "    which -a edge-tts   # remove the stale one, then: hash -r" ;;
       *)        echo "  Reinstall it: $PKG $cmd" ;;
     esac
     exit 1
@@ -115,9 +116,12 @@ for i in $(seq 0 $((ENTRIES - 1))); do
   # no file. Quiet on success, loud on failure.
   if ! edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" \
        --write-media "$AUDIO" 2>"$TMP_ERR"; then
-    echo "edge-tts failed on entry $IDX. Usual causes: no network access; a voice name" >&2
-    echo "that does not exist; or an install pointing at a Python that is gone." >&2
-    sed 's/^/  /' "$TMP_ERR" >&2
+    echo "edge-tts failed on entry $IDX. Usual causes: a voice name that does not exist" >&2
+    echo "(list them with: edge-tts --list-voices | grep ${VOICE%%-*}); no network access;" >&2
+    echo "or an install pointing at a Python that is gone." >&2
+    # The last lines, not all of them: a Python traceback is thirty lines whose final one
+    # is the whole answer.
+    tail -5 "$TMP_ERR" | sed 's/^/  /' >&2
     exit 1
   fi
 
