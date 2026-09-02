@@ -99,7 +99,7 @@ and it is deliberately not a longer list.
 | Playwright + TypeScript | One project, including the API panel |
 | Linux | Every run |
 | Windows + WSL | One project, host capture and WSL assembly |
-| macOS | **Never run.** Nothing should stop it; nobody has tried |
+| macOS | The sample app, end to end. The engine needed no changes; six fixes went into prerequisites and error messages |
 | Any other stack | The contract is `NN_name.png` + a narration JSON. The engine does not care what produced the PNGs — but no one has written a third recipe yet |
 
 ## What it does not do
