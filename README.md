@@ -24,6 +24,19 @@ turns them into a narrated MP4 with a synthetic voice.
 What comes out is not just a video: it is documentation that **fails when the product
 changes**, because the walkthrough is a real end-to-end test.
 
+## See it
+
+[![Watch the demo](https://img.youtube.com/vi/h2U_B-G8fZg/hqdefault.jpg)](https://youtu.be/h2U_B-G8fZg)
+
+One minute, generated from [`examples/sample-app`](examples/sample-app/) by the plugin
+itself — [English](https://youtu.be/h2U_B-G8fZg) · [Español](https://youtu.be/M0JQVx_tBEg).
+
+The two are not one recording dubbed twice. Each language captures again, so the
+interface changes along with the voice: catalogue, buttons, number formatting, order
+status. A screen in one language under a voice in another reads as a mistake rather than
+as a translation, and that rule is the reason multi-language costs a capture run per
+language.
+
 ## What you need
 
 On whichever machine assembles the video:

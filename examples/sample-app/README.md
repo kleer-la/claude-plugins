@@ -2,6 +2,8 @@
 
 The smallest application worth filming: a catalogue, a cart, a form, and one API call.
 
+**What it produces:** [English](https://youtu.be/h2U_B-G8fZg) · [Español](https://youtu.be/M0JQVx_tBEg)
+
 It exists for three reasons — it is the ten-minute way to see the plugin work without
 owning a suitable project, it is the regression fixture for the Playwright recipe, and the
 video it produces is the one we can show people.
