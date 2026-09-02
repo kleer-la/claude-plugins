@@ -89,6 +89,20 @@ echo "   Output:      $OUTPUT"
 # see reference/gotchas.md, "the video cannot live in tmp/".
 mkdir -p "$AUDIO_DIR" "$SEGMENTS_DIR" "$(dirname "$OUTPUT")"
 
+# Not realpath: it is GNU coreutils and macOS does not ship it. Failing inside a command
+# substitution it also produced an empty string rather than an error, so the concat list
+# filled up with blank entries and ffmpeg complained about the list instead of the cause.
+abspath() {
+  case "$1" in
+    /*) printf '%s\n' "$1" ;;
+    *)  printf '%s/%s\n' "$(cd "$(dirname "$1")" && pwd -P)" "$(basename "$1")" ;;
+  esac
+}
+
+# Resolved once, here: ffmpeg's concat demuxer resolves paths against the list file rather
+# than the working directory, so everything written into it has to be absolute.
+SEGMENTS_DIR="$(abspath "$SEGMENTS_DIR")"
+
 ENTRIES=$(jq length "$NARRATION_FILE")
 CONCAT_FILE="$SEGMENTS_DIR/concat.txt"
 : > "$CONCAT_FILE"
@@ -142,9 +156,7 @@ for i in $(seq 0 $((ENTRIES - 1))); do
       exit 1
     }
 
-  # realpath: SCREENSHOTS may arrive relative, and ffmpeg's concat resolves paths
-  # against the list file, not against the cwd.
-  echo "file '$(realpath "$SEGMENT")'" >> "$CONCAT_FILE"
+  echo "file '$SEGMENT'" >> "$CONCAT_FILE"
 done
 
 # Without this guard ffmpeg gets an empty list and returns its own error instead of
