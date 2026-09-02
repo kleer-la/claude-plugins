@@ -16,15 +16,30 @@ import {
 // recipes/playwright-node/. That is deliberate: it makes the sample a regression fixture,
 // so a change that breaks `capture` or `apiPanel` fails here before it reaches anyone.
 //
-//   bash <plugin>/engine/run.sh checkout
+// Runs once per language, and the INTERFACE changes with it, not just the voice-over.
+//
+//   bash <plugin>/engine/run.sh checkout      # English, the first language declared
+//   bash <plugin>/engine/run.sh checkout es
 
-const SHOTS = "tmp/video_screenshots/checkout";
+const CARD = {
+  en: {
+    description: "One call confirms the order.",
+    note: "The order id is assigned by the server, not by the browser.",
+  },
+  es: {
+    description: "El pedido se confirma con una sola llamada.",
+    note: "El identificador del pedido lo asigna el servidor, no el navegador.",
+  },
+};
 
-test("checkout walkthrough", async ({ page, request }) => {
-  resetDir(SHOTS);
-  const capture = createCapture(page, SHOTS);
+test("checkout walkthrough", async ({ page, request }, testInfo) => {
+  const lang = testInfo.project.name as "en" | "es";
+  const shots = `tmp/video_screenshots/checkout_${lang}`;
 
-  await page.goto("/");
+  resetDir(shots);
+  const capture = createCapture(page, shots);
+
+  await page.goto(`/?lang=${lang}`);
   await page.waitForSelector("#catalog tr");
   await capture("catalogo");
 
@@ -49,18 +64,18 @@ test("checkout walkthrough", async ({ page, request }) => {
   });
 
   await showApiCall(page, {
-    description: "El pedido se confirma con una sola llamada.",
+    description: CARD[lang].description,
     method: "POST",
     url: "/api/orders",
     request: { customer: "Ana Gutierrez", items: [{ sku: "CUP-010", qty: 1 }] },
     status,
     response: pickFields(body as Record<string, unknown>, ["id", "total", "status"]),
-    note: "El identificador del pedido lo asigna el servidor, no el navegador.",
+    note: CARD[lang].note,
   });
   await capture("api_pedido_confirmado");
 
   // Back to the browser, where the same order is placed on screen.
-  await page.goto("/");
+  await page.goto(`/?lang=${lang}`);
   await page.waitForSelector("#catalog tr");
   await page.click('button.add[data-sku="CUP-010"]');
   await page.fill("#customer", "Ana Gutierrez");

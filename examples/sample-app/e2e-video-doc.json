@@ -1,13 +1,15 @@
 {
   "defaults": {
-    "voice": "es-AR-ElenaNeural",
-    "screenshots": "tmp/video_screenshots/{flow}",
-    "narration": "scripts/{flow}_video_narration.json",
-    "output": "videos/{flow}.mp4"
+    "screenshots": "tmp/video_screenshots/{flow}_{lang}",
+    "narration": "scripts/{flow}_video_narration{lang_suffix}.json",
+    "output": "videos/{flow}_{lang}.mp4",
+    "capture": "npx playwright test tests/{flow}.video.spec.ts --project={lang}"
+  },
+  "languages": {
+    "en": { "voice": "en-US-JennyNeural", "suffix": "" },
+    "es": { "voice": "es-AR-ElenaNeural", "suffix": "_es" }
   },
   "flows": {
-    "checkout": {
-      "capture": "npx playwright test tests/{flow}.video.spec.ts"
-    }
+    "checkout": {}
   }
 }

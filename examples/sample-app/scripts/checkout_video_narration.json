@@ -2,31 +2,31 @@
   {
     "screenshot": "01_catalogo.png",
     "duration": 7,
-    "narration": "Esta es la aplicación de ejemplo del plugin: un catálogo, un carrito y un pedido. Suficientemente chica para leerla entera, suficientemente real para que valga la pena filmarla."
+    "narration": "This is the plugin's sample application: a catalogue, a cart and an order. Small enough to read end to end, real enough to be worth filming."
   },
   {
     "screenshot": "02_producto_elegido.png",
     "duration": 6,
-    "narration": "El recuadro rojo lo dibuja el recorrido, no la aplicación. Sirve para que la narración pueda señalar algo y el espectador sepa exactamente qué mirar."
+    "narration": "The red box is drawn by the walkthrough, not by the application. It lets the narration point at something, so the viewer knows exactly where to look."
   },
   {
     "screenshot": "03_carrito_con_articulos.png",
     "duration": 7,
-    "narration": "Agregamos dos productos y el total se actualiza: trece mil setecientos. El mismo recuadro, ahora sobre el total, porque es de lo que habla esta línea."
+    "narration": "We add two products and the total updates: thirteen thousand seven hundred. The same box, now around the total, because that is what this line is about."
   },
   {
     "screenshot": "04_datos_del_cliente.png",
     "duration": 6,
-    "narration": "Completamos el nombre del cliente. Hasta acá es una persona usando la aplicación, y cada paso quedó fotografiado."
+    "narration": "We fill in the customer's name. So far this is a person using the application, and every step has been photographed."
   },
   {
     "screenshot": "05_api_pedido_confirmado.png",
     "duration": 10,
-    "narration": "Una llamada a la API no tiene nada que fotografiar. El plugin la dibuja como una tarjeta: qué se envió, qué respondió el servidor, y el aviso de que hay tres campos más que quedaron fuera de pantalla a propósito."
+    "narration": "An API call has nothing to photograph. The plugin draws it as a card: what was sent, what the server answered, and the note saying three more fields were deliberately left off screen."
   },
   {
     "screenshot": "06_pedido_confirmado.png",
     "duration": 9,
-    "narration": "Y el pedido confirmado en pantalla. Este recorrido es un test end-to-end: cuando la pantalla cambie, se va a romper, y el video no va a envejecer en silencio."
+    "narration": "And the order confirmed on screen. This walkthrough is an end-to-end test: when the screen changes it will break, and the video will not go stale in silence."
   }
 ]
