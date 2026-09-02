@@ -61,23 +61,21 @@ status. A screen in one language under a voice in another reads as a mistake rat
 as a translation, and that rule is the reason multi-language costs a capture run per
 language.
 
-## What you need
+## What it is built on
 
-On whichever machine assembles the video:
+Five things, on whichever machine assembles the video: `ffmpeg` and `ffprobe` put the
+frames and the audio together, `edge-tts` speaks the narration, `jq` reads the config,
+`python3` does the arithmetic. Microsoft Edge's voices need no API key and no account.
 
-```bash
-brew install ffmpeg jq        # macOS
-sudo apt install ffmpeg jq    # Debian/Ubuntu
-pipx install edge-tts        # both (pipx, not pip: it survives Python upgrades)
-```
+**There are no install instructions here on purpose.** Ask Claude to run the plugin's
+preflight, `engine/check.sh`: it reports which of the five are missing on *this* machine
+and with which command, and an agent installs them better than a page can predict. The
+preflight also checks them by **running** them rather than locating them, which is not the
+same question — a `pip`-installed `edge-tts` whose Python was later upgraded is still
+found by `command -v` and still cannot run.
 
-Once the plugin is installed, ask Claude to run its preflight — `engine/check.sh` — or run
-it yourself from wherever the plugin landed. It checks the five by **running** them, which
-is not the same question as whether they are on `PATH`: a `pip`-installed `edge-tts` whose
-Python was later upgraded is found by `command -v` and still cannot run.
-
-The TTS is Microsoft Edge's, which needs no API key. On Windows these live in WSL, and the plugin
-captures on the host and crosses the bridge to assemble — see the Windows section of
+On Windows the five live in WSL: the plugin captures on the host and crosses the bridge to
+assemble. See the Windows section of
 [gotchas](plugins/e2e-video-doc/skills/e2e-video-doc/reference/gotchas.md).
 
 ## Getting started
@@ -138,6 +136,32 @@ and it is deliberately not a longer list.
   copies it in from the capture step ([#2](https://github.com/kleer-la/claude-plugins/issues/2)).
 - **Multi-language costs a capture run per language**, on purpose: the interface has to be
   in the language the voice is speaking, or it reads as a mistake.
+
+## Questions people have actually asked
+
+**Does it replace automated testing?** No, it complements it. It captures the full path as
+a user lives it, which is what tests of the parts do not see.
+
+**Do I need Claude Code to use it?** To write the first walkthrough, yes — that is what
+learns your project. To regenerate the video afterwards, no: `run.sh` is bash, ffmpeg and
+edge-tts, and no model is involved.
+
+**My stack is neither Rails nor Playwright.** The engine does not know what produced the
+PNGs, so it works the same. What you write is the capture, in your stack, using the
+Playwright recipe as the reference for what it has to do.
+
+**Does test data end up in the video?** Whatever your walkthrough uses — which is why it is
+written against factories and seeded data, never production. `apiPanel`'s `trimValue`
+shows the start of a value rather than the value, and is meant for credentials.
+
+**Does it record the screen?** No. It builds the video from numbered screenshots, which is
+what makes it stable and regenerable. You will not see a cursor moving.
+
+**Does it work offline?** No. The voices are generated against Microsoft Edge's service:
+no account and no API key, but it does need a network.
+
+**Which voices?** Edge's, including Spanish for several countries. Picked per flow or per
+language — see [voices](plugins/e2e-video-doc/skills/e2e-video-doc/reference/voices.md).
 
 ## Adding a plugin to this marketplace
 

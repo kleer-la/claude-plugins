@@ -27,16 +27,14 @@ work delegated to an AI agent, and a permanent demo of a feature on the product 
 Then ask Claude for a video of a flow, or write the `e2e-video-doc.json` yourself — see
 `skills/e2e-video-doc/reference/config.md`.
 
-## Requirements
+## What it is built on
 
-`edge-tts` (pip), `ffmpeg`, `jq`, `python3`.
+`ffmpeg` and `ffprobe` assemble, `edge-tts` speaks, `jq` reads the config, `python3` does
+the arithmetic. No API key and no account.
 
-```bash
-pip install edge-tts
-apt install ffmpeg jq      # or brew install ffmpeg jq
-```
-
-On Windows these are not on the host: capture runs there and assembly crosses into WSL.
+How to install them is deliberately not written down: `engine/check.sh` says which are
+missing here and with which command, and the agent takes it from there. On Windows they
+are not on the host at all — capture runs there and assembly crosses into WSL.
 
 ## How it is split
 

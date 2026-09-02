@@ -10,15 +10,8 @@ video it produces is the one we can show people.
 
 ## Run it
 
-**Node 18 or newer.** Check first — an older one fails while building a native dependency
-and reports a `node-gyp` error that says nothing about the real problem:
-
-```bash
-node -v
-```
-
-If it is older (or `npx` is missing, which means Node is older than 8): `brew install node`,
-or use nvm.
+**Node 18 or newer** — `node -v`. An older one fails while building a native dependency
+and reports a `node-gyp` error that says nothing about the real problem.
 
 ```bash
 npm install
@@ -31,16 +24,11 @@ bash <plugin>/engine/run.sh checkout es     # Spanish
 The result lands in `videos/checkout_en.mp4` or `videos/checkout_es.mp4` — about a minute,
 six frames each.
 
-The engine needs `edge-tts`, `ffmpeg`, `ffprobe`, `jq` and `python3`:
+The engine needs `edge-tts`, `ffmpeg`, `ffprobe`, `jq` and `python3`. To find out whether
+this machine has them, and what to run if it does not:
 
 ```bash
-for c in edge-tts ffmpeg ffprobe jq python3; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
-```
-
-```bash
-brew install ffmpeg jq        # macOS
-sudo apt install ffmpeg jq    # Debian/Ubuntu
-pipx install edge-tts        # both (pipx, not pip: it survives Python upgrades)
+bash <plugin>/engine/check.sh
 ```
 
 To see just the screenshots, without narrating anything:
