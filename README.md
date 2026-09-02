@@ -35,7 +35,7 @@ for c in edge-tts ffmpeg ffprobe jq python3; do printf "%-10s %s\n" "$c" "$(comm
 ```bash
 brew install ffmpeg jq        # macOS
 sudo apt install ffmpeg jq    # Debian/Ubuntu
-pip install edge-tts          # both
+pipx install edge-tts        # both (pipx, not pip: it survives Python upgrades)
 ```
 
 The TTS is Microsoft Edge's, which needs no API key. On Windows these live in WSL, and the plugin

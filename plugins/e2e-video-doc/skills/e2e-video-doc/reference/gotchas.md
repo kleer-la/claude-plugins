@@ -22,6 +22,13 @@ docker exec <container> bash -lc 'for c in edge-tts ffmpeg ffprobe jq; do printf
 Run the engine wherever all four are present. If they are nowhere, say which tool is
 missing where instead of installing system packages on your own.
 
+**On PATH is not the same as working.** `edge-tts` is a Python entry point, and a Homebrew
+Python upgrade leaves it behind with a shebang naming an interpreter that no longer exists
+— `command -v` finds the file, running it says `bad interpreter`. Found on a Mac whose
+`edge-tts` pointed at a python3.7 that had been gone for a while. The engine's preflight
+therefore *runs* each tool rather than merely locating it. `pipx install edge-tts` puts it
+in its own virtualenv and survives the next Python upgrade; `pip install` does not.
+
 ## The container name is not stable
 
 Compose derives it from the project name, which is the directory it was started from:

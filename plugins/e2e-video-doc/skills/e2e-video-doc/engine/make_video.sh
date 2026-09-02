@@ -35,14 +35,37 @@ case "$(uname -s)" in
   *)      PKG="apt install" ;;
 esac
 
+# Checked by running them, not by `command -v`. A tool can be on PATH and still be
+# unusable: a Homebrew Python upgrade leaves edge-tts behind with a shebang pointing at an
+# interpreter that no longer exists, and `command -v` happily finds that file. Existing and
+# working are different questions, and only the second one matters here.
+check() {
+  case "$1" in
+    edge-tts) edge-tts --help ;;
+    ffmpeg)   ffmpeg -version ;;
+    ffprobe)  ffprobe -version ;;
+    jq)       jq --version ;;
+    python3)  python3 --version ;;
+  esac >/dev/null 2>&1
+}
+
 for cmd in edge-tts ffmpeg ffprobe jq python3; do
-  if ! command -v "$cmd" &>/dev/null; then
+  if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Missing: $cmd"
     case $cmd in
-      edge-tts) echo "  Install: pip install edge-tts" ;;
+      edge-tts) echo "  Install: pipx install edge-tts (or pip install edge-tts)" ;;
       ffmpeg|ffprobe) echo "  Install: $PKG ffmpeg" ;;
       jq)       echo "  Install: $PKG jq" ;;
       python3)  echo "  Install: $PKG python3" ;;
+    esac
+    exit 1
+  elif ! check "$cmd"; then
+    echo "On PATH but will not run: $cmd  ($(command -v "$cmd"))"
+    case $cmd in
+      edge-tts) echo "  Usually a Python it was installed against is gone. Reinstall:" ;
+                echo "    pipx install --force edge-tts   # its own venv, survives Python upgrades" ;
+                echo "    # or: pip3 install --force-reinstall edge-tts" ;;
+      *)        echo "  Reinstall it: $PKG $cmd" ;;
     esac
     exit 1
   fi
@@ -92,7 +115,8 @@ for i in $(seq 0 $((ENTRIES - 1))); do
   # no file. Quiet on success, loud on failure.
   if ! edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" \
        --write-media "$AUDIO" 2>"$TMP_ERR"; then
-    echo "edge-tts failed on entry $IDX. It needs network access; the voice name must exist." >&2
+    echo "edge-tts failed on entry $IDX. Usual causes: no network access; a voice name" >&2
+    echo "that does not exist; or an install pointing at a Python that is gone." >&2
     sed 's/^/  /' "$TMP_ERR" >&2
     exit 1
   fi
