@@ -15,19 +15,24 @@ the next run deletes it — or any full system-test run does. The config's `outp
 different one per machine. **Detect, do not assume.**
 
 ```bash
-for c in edge-tts ffmpeg ffprobe jq; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
-docker exec <container> bash -lc 'for c in edge-tts ffmpeg ffprobe jq; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done'
+bash engine/check.sh
+docker exec <container> bash /path/to/engine/check.sh
 ```
 
-Run the engine wherever all four are present. If they are nowhere, say which tool is
-missing where instead of installing system packages on your own.
+Run the engine wherever all five pass. If they pass nowhere, say which tool is missing
+where instead of installing system packages on your own.
+
+`check.sh` exists precisely so this can be answered before any work is done. It used to be
+reachable only through `make_video.sh`, which needs a narration, a screenshots directory
+and an output path — so the check arrived an hour after the moment it was useful.
 
 **On PATH is not the same as working.** `edge-tts` is a Python entry point, and a Homebrew
 Python upgrade leaves it behind with a shebang naming an interpreter that no longer exists
 — `command -v` finds the file, running it says `bad interpreter`. Found on a Mac whose
-`edge-tts` pointed at a python3.7 that had been gone for a while. The engine's preflight
-therefore *runs* each tool rather than merely locating it. `pipx install edge-tts` puts it
-in its own virtualenv and survives the next Python upgrade; `pip install` does not.
+`edge-tts` pointed at a python3.7 that had been gone for a while. `check.sh` therefore
+*runs* each tool rather than merely locating it, and a hand-written `command -v` loop is
+the check we already know is not enough. `pipx install edge-tts` puts it in its own
+virtualenv and survives the next Python upgrade; `pip install` does not.
 
 ## The container name is not stable
 

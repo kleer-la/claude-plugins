@@ -3,6 +3,17 @@
 Copy `capture.ts` and `apiPanel.ts` into the project's helpers. They have no dependencies
 beyond `@playwright/test`.
 
+**`@playwright/test` is not `playwright`.** They are different npm packages, and a project
+can have the library without the test runner. Check before writing the first capture:
+
+```bash
+node -e "require.resolve('@playwright/test')" || npm install --save-dev @playwright/test
+```
+
+Skipping it fails late and points at the wrong thing: `npx playwright test` exists and
+starts, because the `playwright` binary is there, and the error names your
+`playwright.config.ts` rather than the missing package.
+
 ## `capture.ts`
 
 ```ts

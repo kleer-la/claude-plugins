@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.1
+
+The first report from someone outside the team who installed it cold ([#8]). The engine
+and the recipe did exactly what they document — both findings are about what you have to
+know *before* writing the first capture, which is the part only a stranger can test.
+
+### Added
+
+- `engine/check.sh` — the preflight, on its own. It already checked the five tools by
+  running them, but only from inside `make_video.sh`, which requires `NARRATION`,
+  `SCREENSHOTS` and `OUTPUT`: the check was unreachable at the one moment it was wanted,
+  before there was a flow to run. `make_video.sh` now calls it, so there is one
+  implementation. Step 1 of the skill is to run it.
+
+### Documented
+
+- **`@playwright/test` is not `playwright`.** A project can have the library without the
+  test runner, and then `npx playwright test` starts anyway — the binary exists — and
+  fails naming `playwright.config.ts` rather than the missing package. The recipe README
+  says how to check, and stack detection no longer treats a `playwright.config.*` as
+  proof the runner is installed.
+- The `command -v` loops in the README and in gotchas are gone. They were the weaker check
+  that finding #4 of the macOS round taught us not to trust, and the first external tester
+  wrote his own copy of one rather than finding `check.sh` — because there was none.
+
+[#8]: https://github.com/kleer-la/claude-plugins/issues/8
+
 ## 0.2.0
 
 Five projects in, across two stacks and two operating systems. Everything here was paid

@@ -42,14 +42,15 @@ language.
 On whichever machine assembles the video:
 
 ```bash
-for c in edge-tts ffmpeg ffprobe jq python3; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
-```
-
-```bash
 brew install ffmpeg jq        # macOS
 sudo apt install ffmpeg jq    # Debian/Ubuntu
 pipx install edge-tts        # both (pipx, not pip: it survives Python upgrades)
 ```
+
+Once the plugin is installed, ask Claude to run its preflight — `engine/check.sh` — or run
+it yourself from wherever the plugin landed. It checks the five by **running** them, which
+is not the same question as whether they are on `PATH`: a `pip`-installed `edge-tts` whose
+Python was later upgraded is found by `command -v` and still cannot run.
 
 The TTS is Microsoft Edge's, which needs no API key. On Windows these live in WSL, and the plugin
 captures on the host and crosses the bridge to assemble — see the Windows section of
@@ -96,7 +97,7 @@ and it is deliberately not a longer list.
 | | Status |
 |---|---|
 | Rails + Capybara + Selenium | Four projects, including multi-language and devcontainers |
-| Playwright + TypeScript | One project, including the API panel |
+| Playwright + TypeScript | Two projects, including the API panel. One of them installed cold by someone outside the team, on macOS, and produced a video without asking us anything |
 | Linux | Every run |
 | Windows + WSL | One project, host capture and WSL assembly |
 | macOS | The sample app, end to end. The engine needed no changes; six fixes went into prerequisites and error messages |

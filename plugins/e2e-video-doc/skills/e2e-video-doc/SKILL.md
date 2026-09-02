@@ -28,15 +28,21 @@ and its login helper — because it has to age with the project. That is the fea
 
 ## Before doing anything
 
-1. **Read [reference/gotchas.md](reference/gotchas.md).** It is short and every item was
+1. **Run `bash engine/check.sh`.** Five tools, checked by running them rather than
+   locating them. Do it now, not when the narration is written: it is the only failure
+   here that needs a human to install something, and it costs nothing to hit early. In a
+   devcontainer, run it in the container that will assemble.
+2. **Read [reference/gotchas.md](reference/gotchas.md).** It is short and every item was
    paid for once. Especially: where the MP4 ends up, and where the tools are installed on
    *this* machine.
-2. **Detect the stack** — do not ask what you can look up:
+3. **Detect the stack** — do not ask what you can look up:
    - `test/system/` with Capybara → [recipes/rails-capybara](recipes/rails-capybara/)
-   - `playwright.config.*` → [recipes/playwright-node](recipes/playwright-node/)
+   - `playwright.config.*` → [recipes/playwright-node](recipes/playwright-node/).
+     Confirm the project has **`@playwright/test`**, not just `playwright`: they are
+     different packages, and the recipe needs the test runner.
    - Anything else: use the Playwright recipe as the reference for what features the
      capture helper needs, and write it in the project's stack.
-3. **Is there an `e2e-video-doc.json` at the root?** If not, create it — see
+4. **Is there an `e2e-video-doc.json` at the root?** If not, create it — see
    [reference/config.md](reference/config.md).
 
 ## Generating a video for an existing flow
@@ -79,6 +85,7 @@ bug, say so before patching the script to step around it.
 
 | | |
 |---|---|
+| `engine/check.sh` | Preflight: are the five tools here and do they run? Needs nothing set up; run it first. |
 | `engine/make_video.sh` | The engine. Screenshots + narration → MP4. Driven entirely by the environment. |
 | `engine/run.sh` | Runs one flow from `e2e-video-doc.json`. |
 | `engine/devcontainer.sh` | Resolves a Compose service to the container actually running it. Container names drift; this does not. |

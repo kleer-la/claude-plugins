@@ -6,7 +6,8 @@
 # cares about is the contract — `NN_name.png` files in a directory, and a JSON with the
 # narration.
 #
-# Requires: edge-tts (pip), ffmpeg/ffprobe, jq, python3.
+# Requires: edge-tts (pip), ffmpeg/ffprobe, jq, python3. Check them with `bash check.sh`,
+#   which is the same preflight this runs and needs nothing set up first.
 #   On Windows these are not on the host. See make_videos.ps1 (capture on Windows,
 #   assemble in WSL).
 #
@@ -28,49 +29,10 @@ RATE="${RATE:-+0%}"
 AUDIO_DIR="$SCREENSHOTS_DIR/audio"
 SEGMENTS_DIR="$SCREENSHOTS_DIR/segments"
 
-# The hint leads with the package manager the reader actually has: being told to
-# `apt install` on a Mac is one more translation between them and a working command.
-case "$(uname -s)" in
-  Darwin) PKG="brew install" ;;
-  *)      PKG="apt install" ;;
-esac
-
-# Checked by running them, not by `command -v`. A tool can be on PATH and still be
-# unusable: a Homebrew Python upgrade leaves edge-tts behind with a shebang pointing at an
-# interpreter that no longer exists, and `command -v` happily finds that file. Existing and
-# working are different questions, and only the second one matters here.
-check() {
-  case "$1" in
-    edge-tts) edge-tts --help ;;
-    ffmpeg)   ffmpeg -version ;;
-    ffprobe)  ffprobe -version ;;
-    jq)       jq --version ;;
-    python3)  python3 --version ;;
-  esac >/dev/null 2>&1
-}
-
-for cmd in edge-tts ffmpeg ffprobe jq python3; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Missing: $cmd"
-    case $cmd in
-      edge-tts) echo "  Install: pipx install edge-tts (or pip install edge-tts)" ;;
-      ffmpeg|ffprobe) echo "  Install: $PKG ffmpeg" ;;
-      jq)       echo "  Install: $PKG jq" ;;
-      python3)  echo "  Install: $PKG python3" ;;
-    esac
-    exit 1
-  elif ! check "$cmd"; then
-    echo "On PATH but will not run: $cmd  ($(command -v "$cmd"))"
-    case $cmd in
-      edge-tts) echo "  Usually a Python it was installed against is gone. Reinstall:" ;
-                echo "    pipx install --force edge-tts   # its own venv, survives Python upgrades" ;
-                echo "  If a reinstall did not help, an older copy may be shadowing it:" ;
-                echo "    which -a edge-tts   # remove the stale one, then: hash -r" ;;
-      *)        echo "  Reinstall it: $PKG $cmd" ;;
-    esac
-    exit 1
-  fi
-done
+# The same preflight anyone can run on its own with `bash check.sh`, before there is a
+# flow to run. It checks the five tools by *running* them, not by locating them.
+ENGINE_DIR="$(cd "$(dirname "$0")" && pwd)"
+bash "$ENGINE_DIR/check.sh" --quiet
 
 [ -f "$NARRATION_FILE" ] || { echo "No such narration file: $NARRATION_FILE"; exit 1; }
 [ -d "$SCREENSHOTS_DIR" ] || { echo "No such screenshots directory: $SCREENSHOTS_DIR"; exit 1; }
