@@ -21,6 +21,11 @@ know *before* writing the first capture, which is the part only a stranger can t
   fails naming `playwright.config.ts` rather than the missing package. The recipe README
   says how to check, and stack detection no longer treats a `playwright.config.*` as
   proof the runner is installed.
+- **Installing from the desktop app.** Its plugin browser installs from marketplaces that
+  are already configured; adding one is a CLI command, which reads as "the plugin does not
+  work here". The README now carries the `extraKnownMarketplaces` + `enabledPlugins` route,
+  which needs no terminal at all, and names the two things that look like a failure and are
+  not: the Code tab is where plugins live, and Linux desktop is a beta.
 - The `command -v` loops in the README and in gotchas are gone. They were the weaker check
   that finding #4 of the macOS round taught us not to trust, and the first external tester
   wrote his own copy of one rather than finding `check.sh` — because there was none.

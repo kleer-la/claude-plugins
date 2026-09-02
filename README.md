@@ -7,6 +7,30 @@ The team marketplace. Add it once, and plugins added later show up on their own.
 /plugin install e2e-video-doc@kleer-la
 ```
 
+### From the desktop app
+
+Its plugin browser installs from marketplaces you already have configured, but **adding
+one is a CLI command**. Either run the two lines above once in `claude` and restart the
+app, or register the marketplace yourself and never open a terminal — in
+`~/.claude/settings.json` for every project, or a project's `.claude/settings.json` for
+one:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "kleer-la": { "source": { "source": "github", "repo": "kleer-la/claude-plugins" } }
+  },
+  "enabledPlugins": { "e2e-video-doc@kleer-la": true }
+}
+```
+
+In a project's settings this takes effect only once the folder is trusted.
+
+Two things that look like the plugin failing and are not: it lives in the **Code** tab —
+Chat and Cowork take their plugins from the claude.ai account rather than from
+`~/.claude` — and the Linux desktop app is a beta, installed with `apt` or a `.deb` on
+Ubuntu and Debian.
+
 ## Plugins
 
 | Plugin | What it does |
