@@ -57,14 +57,39 @@ async function highlightOn(page: Page, selectors: string[]): Promise<void> {
       ({ attr, box, gap, border }) => {
         const el = document.createElement("div");
         el.setAttribute(attr, "1");
+        // Document coordinates, not viewport ones. A `position: fixed` box is placed
+        // against the window, and a full-page screenshot is not a window: where it ends
+        // up then depends on how the browser stitches the tall image, which differs
+        // between versions — measured landing at the element on one Playwright and
+        // reported pinned near the top of the image on another. Absolute positioning
+        // plus the scroll offset asks the question the picture actually answers: where
+        // is this element on the page?
+        // Clamped inside the document, and the extents are read before anything is
+        // appended. A ring drawn 5px past the right edge is 5px of new scrollable area:
+        // the page acquires a horizontal scrollbar, the full-page image comes out wider,
+        // and every frame after it is composed differently. Measured, once.
+        const docW = document.documentElement.scrollWidth;
+        const docH = document.documentElement.scrollHeight;
+        const left = Math.max(0, box.x + window.scrollX - gap - border);
+        const top = Math.max(0, box.y + window.scrollY - gap - border);
+        const width = Math.min(box.width + 2 * (gap + border), docW - left);
+        const height = Math.min(box.height + 2 * (gap + border), docH - top);
         el.style.cssText =
-          `position:fixed;box-sizing:border-box;pointer-events:none;z-index:2147483647;` +
-          `left:${box.x - gap - border}px;top:${box.y - gap - border}px;` +
-          `width:${box.width + 2 * (gap + border)}px;` +
-          `height:${box.height + 2 * (gap + border)}px;` +
+          `position:absolute;box-sizing:border-box;pointer-events:none;z-index:2147483647;` +
+          `left:${left}px;top:${top}px;width:${width}px;height:${height}px;` +
           `border:${border}px solid #d9534f;border-radius:3px;` +
           `box-shadow:0 0 0 6px rgba(217, 83, 79, .18)`;
         document.body.appendChild(el);
+        // `absolute` is resolved against the nearest positioned ancestor, and a body with
+        // `position: relative` — or a margin — is not the document origin. Rather than
+        // assume, measure where the box actually landed and shift it by the difference.
+        const drawn = el.getBoundingClientRect();
+        const dx = Math.max(0, box.x - gap - border) - drawn.left;
+        const dy = Math.max(0, box.y - gap - border) - drawn.top;
+        if (dx || dy) {
+          el.style.left = `${left + dx}px`;
+          el.style.top = `${top + dy}px`;
+        }
       },
       { attr: OVERLAY_ATTR, box, gap: OVERLAY_GAP, border: OVERLAY_BORDER },
     );

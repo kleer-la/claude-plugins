@@ -39,7 +39,7 @@ test("placing an order", { tag: "@video" }, async ({ page }) => {
 | `highlight` | Red box over one or more selectors during the shot. Removed afterwards, so it does not leak into the next step. Throws if it does not match. |
 | `focus` / `focusPad` | Crops the image around a selector, with air. |
 | `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"` \| `"text:<substring>"`. |
-| `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. |
+| `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. Works with `highlight`: the box is drawn in document coordinates, so it frames the element wherever it sits in the tall image. |
 | `pauseMs` | Wait before the shot (default 400). |
 | `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. |
 

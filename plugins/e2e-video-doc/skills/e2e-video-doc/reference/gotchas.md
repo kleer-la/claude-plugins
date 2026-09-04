@@ -231,6 +231,20 @@ the same number before and after. Two consequences worth knowing:
 - The box is a photograph of one instant — it is positioned from the element's rect and
   does not follow it afterwards. `capture` therefore draws it *after* scrolling, which is
   the order it already used.
+- **It is placed in document coordinates, not viewport ones.** A `position: fixed` box is
+  placed against the window, and a full-page screenshot is not a window — it is a tall
+  image the browser stitches, and where a fixed box lands in it is a browser-version
+  question. Measured at the element's place in the document on one Playwright; reported
+  pinned near the top of the image, framing nothing, on an older one. `position: absolute`
+  plus `scrollX`/`scrollY` asks the question the picture actually answers — where is this
+  element on the page — and takes the version out of it.
+- Two details that go with that. `absolute` resolves against the nearest positioned
+  ancestor, and a body with `position: relative` is not the document origin: draw the box,
+  measure where it landed, shift it by the difference rather than assuming. And **clamp it
+  inside the document** — a ring drawn 5px past the right edge is 5px of new scrollable
+  area, so the page gains a horizontal scrollbar, a full-page image comes out wider, and
+  every frame after it is composed differently. Read `scrollWidth`/`scrollHeight` before
+  appending anything.
 - Staging this failure with `cloneNode(true)` proves nothing: a clone copies attributes, so
   the old mark rides along and everything looks fine. The faithful stand-in is putting the
   server's own markup back over the node (`this.outerHTML = <captured html>`).

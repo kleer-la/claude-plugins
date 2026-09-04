@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.3.4
+
+The overlay was right about *which* element to frame and wrong about the coordinate system
+it framed it in ([#12], found while closing kydat-poc#90).
+
+### Fixed
+
+- **The highlight box is drawn in document coordinates, not viewport ones.** It was
+  `position: fixed`, which places it against the window — and a full-page screenshot is not
+  a window, it is a tall image the browser stitches. Where a fixed box lands in that image
+  is a browser-version question: measured at the element's place in the document on
+  Playwright 1.62, reported pinned near the top of the image, framing nothing, on 1.55.
+  `position: absolute` plus `scrollX`/`scrollY` takes the version out of it. Both recipes
+  changed, though only Playwright takes full-page shots — Selenium's is viewport-only, so
+  the Capybara change is parity.
+
+  **Not reproduced here**, and worth saying: on 1.62 the old code passes the new test.
+  Playwright 1.55 does not install on this host (unsupported OS) and cannot drive the
+  newer Chromium, so the failing version could not be run. The fix removes the dependency
+  rather than patching the symptom.
+
+- **The box no longer widens the page.** Absolute positioning made the first version add
+  5px of scrollable width — a ring drawn past the right edge is new scroll area — which
+  gave the document a horizontal scrollbar and made the full-page image 805px wide instead
+  of 800. Caught by measuring the PNG rather than looking at it. The box is now clamped
+  inside `scrollWidth`/`scrollHeight`, read before anything is appended.
+
+- `absolute` resolves against the nearest positioned ancestor, so a body with
+  `position: relative` would shift the box. It is drawn, measured, and corrected by the
+  difference instead of assumed.
+
+### Added
+
+- `examples/sample-app/tests/highlight.spec.ts` gains a full-page case: an element 1500px
+  down a scrolled page, photographed with `fullPage`, asserting the red ring sits at the
+  element's *document* position and that the page did not get wider. `redBounds` in
+  `tests/pixels.ts` measures where the box is, not merely that it exists.
+
+[#12]: https://github.com/kleer-la/claude-plugins/issues/12
+
 ## 0.3.3
 
 0.3.0 made `scroll:` instant and only got half of it. Found while updating a downstream

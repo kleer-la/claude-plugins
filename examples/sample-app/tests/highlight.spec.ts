@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { redPixels } from "./pixels";
+import { redPixels, redBounds } from "./pixels";
 import {
   createCapture,
   resetDir,
@@ -51,4 +51,56 @@ test("the box survives the framework re-rendering the node it frames", async ({ 
   expect(survived, "the box is still there after the re-render").toBeGreaterThan(1000);
   // and it is the same box, in the same place, not a smaller remnant
   expect(Math.abs(survived - drawn)).toBeLessThan(drawn * 0.02);
+});
+
+test("the box frames the element in a full-page shot of a scrolled page", async ({ page }) => {
+  const shots = "tmp/highlight_fullpage";
+  resetDir(shots);
+  const capture = createCapture(page, shots);
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/?lang=en");
+
+  // Something far enough down that the window and the document disagree about where it is.
+  await page.evaluate(() => {
+    const before = document.createElement("div");
+    before.style.cssText = "height:1500px;background:linear-gradient(#fff,#ccd)";
+    document.body.prepend(before);
+    const target = document.createElement("p");
+    target.id = "deep";
+    target.textContent = "deep in the page";
+    target.style.cssText = "height:60px;margin:0";
+    document.body.insertBefore(target, document.body.children[1]);
+    const after = document.createElement("div");
+    after.style.cssText = "height:1500px;background:linear-gradient(#ccd,#fff)";
+    document.body.appendChild(after);
+  });
+
+  const shot = await capture("deep", {
+    scroll: "css:#deep",
+    highlight: "#deep",
+    fullPage: true,
+  });
+
+  const { docTop, docWidth } = await page.evaluate(() => {
+    const r = document.querySelector("#deep")!.getBoundingClientRect();
+    return {
+      docTop: Math.round(r.top + window.scrollY),
+      docWidth: document.documentElement.scrollWidth,
+    };
+  });
+
+  // The box is drawn in document coordinates, so in a full-page image it must sit at the
+  // element's place in the document — not at its place in the window, which is where a
+  // position:fixed box ends up on some browser versions and not others.
+  const { top, count } = await redBounds(page, shots, shot);
+  expect(count, "the box is in the picture at all").toBeGreaterThan(1000);
+  expect(
+    Math.abs(top - (docTop - 5)),
+    `box top ${top}, element at ${docTop} (less the 2px gap and 3px ring)`,
+  ).toBeLessThanOrEqual(2);
+
+  // And it did not widen the page on its way in: a ring past the right edge is new
+  // scrollable area, which recomposes every later frame.
+  const shotWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(shotWidth, "the overlay must not add scrollable width").toBe(docWidth);
 });

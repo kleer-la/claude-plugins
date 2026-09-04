@@ -227,14 +227,37 @@ module VideoRecording
       const [attr, left, top, width, height, gap, border] = arguments;
       const box = document.createElement("div");
       box.setAttribute(attr, "1");
+      // Document coordinates, not viewport ones: a position:fixed box is placed against
+      // the window, and a full-page screenshot is not a window. Selenium photographs the
+      // viewport here, so this costs nothing today and stops the box from depending on
+      // that staying true.
+      // Clamped inside the document, extents read before anything is appended: a ring
+      // drawn past the right edge is new scrollable area, which gives the page a
+      // horizontal scrollbar and recomposes every frame after it.
+      const docW = document.documentElement.scrollWidth;
+      const docH = document.documentElement.scrollHeight;
+      const boxLeft = Math.max(0, left + window.scrollX - gap - border);
+      const boxTop = Math.max(0, top + window.scrollY - gap - border);
+      const boxWidth = Math.min(width + 2 * (gap + border), docW - boxLeft);
+      const boxHeight = Math.min(height + 2 * (gap + border), docH - boxTop);
       box.style.cssText =
-        "position:fixed;box-sizing:border-box;pointer-events:none;z-index:2147483647;" +
-        "left:" + (left - gap - border) + "px;top:" + (top - gap - border) + "px;" +
-        "width:" + (width + 2 * (gap + border)) + "px;" +
-        "height:" + (height + 2 * (gap + border)) + "px;" +
+        "position:absolute;box-sizing:border-box;pointer-events:none;z-index:2147483647;" +
+        "left:" + boxLeft + "px;top:" + boxTop + "px;" +
+        "width:" + boxWidth + "px;height:" + boxHeight + "px;" +
         "border:" + border + "px solid #d9534f;border-radius:3px;" +
         "box-shadow:0 0 0 6px rgba(217, 83, 79, .18)";
       document.body.appendChild(box);
+      // absolute resolves against the nearest positioned ancestor, and a body with
+      // position:relative is not the document origin. Measure where it landed, then
+      // correct by the difference rather than assuming.
+      const drawn = box.getBoundingClientRect();
+      const dx = Math.max(0, left - gap - border) - drawn.left;
+      const dy = Math.max(0, top - gap - border) - drawn.top;
+      if (dx || dy) {
+        box.style.left = (boxLeft + dx) + "px";
+        box.style.top = (boxTop + dy) + "px";
+      }
+
     JS
   end
 

@@ -56,3 +56,35 @@ export async function frameDiff(
     [load(a), load(b)],
   );
 }
+
+/** Vertical extent of the highlight box in a captured PNG, in image pixels. Answers the
+ *  only question that matters for a full-page shot: is the ring where the element is? */
+export async function redBounds(
+  page: Page,
+  dir: string,
+  file: string,
+): Promise<{ top: number; bottom: number; count: number }> {
+  const b64 = readFileSync(join(process.cwd(), dir, file)).toString("base64");
+  return page.evaluate(async (src) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${src}`;
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+    canvas.getContext("2d")!.drawImage(img, 0, 0);
+    const { data } = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height);
+    let top = Infinity;
+    let bottom = -Infinity;
+    let count = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] > 170 && data[i + 1] < 120 && data[i + 2] < 120) {
+        const y = Math.floor(i / 4 / canvas.width);
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+        count++;
+      }
+    }
+    return { top: count ? top : -1, bottom: count ? bottom : -1, count };
+  }, b64);
+}
