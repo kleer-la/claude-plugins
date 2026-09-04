@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.2.3
+
+The remount failure #9 reported, fixed in both recipes rather than only written down
+([#10]). Reproduced, fixed and re-measured on a real Rails app with Turbo and on the
+sample app.
+
+### Fixed
+
+- **`highlight:` no longer marks the element it frames.** Both recipes set an attribute on
+  the element and styled it with an outline, and any framework that re-renders that node
+  between `highlightOn` and the screenshot takes the mark with it — Turbo replaces it with
+  the server's HTML, React with the render output, and neither ever carried the attribute.
+  Nothing failed: the selector matched, the test passed, and only the photograph had no box
+  on it. Measured on a Rails login form, 3411 red pixels before the re-render and **0**
+  after; on the sample app, 4004 and **0**. The box is now its own element on
+  `document.body`, outside anything the app re-renders, with the geometry that reproduces
+  the old `outline: 3px` at `outline-offset: 2px`. Same probe after the change: identical
+  count and identical position, before and after the re-render.
+
+  Verified across every path through `capture`: viewport shot, `fullPage`, `focus:` crop,
+  and — the combination that could really have gone wrong — `fullPage` on a scrolled page
+  taller than the viewport, where a `position:fixed` box has to land at the element's place
+  in the whole page. Chromium puts it at `scrollY + top`, which is exactly right: element
+  at page y=318, box drawn at y=313, the 5px being the 2px gap plus the 3px ring.
+
+### Documented
+
+- **`highlight:` and `focus:` do not combine in the Rails recipe.** Selenium photographs
+  the element at its exact rect and the ring is drawn just outside it, so a capture asking
+  for both comes back with no box. Measured, and equally true of the outline that preceded
+  the overlay — it was never a regression, just never written down. Playwright's `focusPad`
+  clips the viewport, so there the box survives.
+- **`cloneNode(true)` cannot stage this failure**, which matters to anyone reproducing it:
+  a clone copies attributes, the old mark rides along, and the bug appears not to exist.
+  The first probe run said 3411 both times for exactly that reason. The faithful stand-in
+  is putting the server's markup back over the node (`this.outerHTML = <captured html>`).
+
+[#10]: https://github.com/kleer-la/claude-plugins/issues/10
+
 ## 0.2.2
 
 A second outside run, this one end to end on a real Node/Nest app in "local production"

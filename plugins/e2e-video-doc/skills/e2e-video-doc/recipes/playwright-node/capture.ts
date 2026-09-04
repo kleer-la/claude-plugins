@@ -26,44 +26,55 @@ type Scroll = "bottom" | "top" | number | `css:${string}` | `text:${string}`;
 
 /** Box drawn over whatever the narration is pointing at. Removed after the shot, so it
  *  does not leak into the next step. At full size a single cell cannot be found on its
- *  own: either you frame it, or you crop the image around it. */
-const HIGHLIGHT_ATTR = "data-e2e-highlight";
-const HIGHLIGHT_STYLE_ID = "e2e-highlight-style";
-const HIGHLIGHT_CSS = `
-[${HIGHLIGHT_ATTR}] {
-  outline: 3px solid #d9534f !important;
-  outline-offset: 2px !important;
-  box-shadow: 0 0 0 6px rgba(217, 83, 79, .18) !important;
-  border-radius: 3px;
-}`;
+ *  own: either you frame it, or you crop the image around it.
+ *
+ *  It is its own element on document.body, not a mark on the element it frames. A mark
+ *  on the element leaves with the element the moment the framework re-renders that node,
+ *  and the loss is silent: the selector matched, the test passes, the photograph simply
+ *  has no box on it. Measured on a real app — the mark scored 3411 red pixels before a
+ *  re-render replaced the node and 0 after, green test both times. Nothing appended to
+ *  document.body is reachable by a re-render of the app's own tree. */
+const OVERLAY_ATTR = "data-e2e-overlay";
+// Reproduces what `outline: 3px` at `outline-offset: 2px` used to draw: 2px of air, a
+// 3px ring, then the glow outside it.
+const OVERLAY_GAP = 2;
+const OVERLAY_BORDER = 3;
 
 async function highlightOn(page: Page, selectors: string[]): Promise<void> {
-  // Through the locator and not document.querySelector: Playwright selectors
-  // (:has-text, :text) are not CSS and the DOM does not understand them. Going
-  // through the locator accepts both.
-  await page.evaluate(
-    ([styleId, css]) => {
-      if (document.getElementById(styleId as string)) return;
-      const style = document.createElement("style");
-      style.id = styleId as string;
-      style.textContent = css as string;
-      document.head.appendChild(style);
-    },
-    [HIGHLIGHT_STYLE_ID, HIGHLIGHT_CSS] as const,
-  );
   for (const sel of selectors) {
+    // Through the locator and not document.querySelector: Playwright selectors
+    // (:has-text, :text) are not CSS and the DOM does not understand them. Going
+    // through the locator accepts both.
     const loc = page.locator(sel).first();
     // Loud failure on purpose: a highlight that does not match is narration pointing at
     // something no longer on the screen — exactly the change the video exists to catch.
     if (!(await loc.count())) throw new Error(`highlight did not match: ${sel}`);
-    await loc.evaluate((el, attr) => el.setAttribute(attr, "1"), HIGHLIGHT_ATTR);
+    const box = await loc.boundingBox();
+    // Matched but unphotographable — display:none, zero-sized — is the same kind of
+    // silence, so it fails the same way.
+    if (!box) throw new Error(`highlight has no box: ${sel}`);
+    await page.evaluate(
+      ({ attr, box, gap, border }) => {
+        const el = document.createElement("div");
+        el.setAttribute(attr, "1");
+        el.style.cssText =
+          `position:fixed;box-sizing:border-box;pointer-events:none;z-index:2147483647;` +
+          `left:${box.x - gap - border}px;top:${box.y - gap - border}px;` +
+          `width:${box.width + 2 * (gap + border)}px;` +
+          `height:${box.height + 2 * (gap + border)}px;` +
+          `border:${border}px solid #d9534f;border-radius:3px;` +
+          `box-shadow:0 0 0 6px rgba(217, 83, 79, .18)`;
+        document.body.appendChild(el);
+      },
+      { attr: OVERLAY_ATTR, box, gap: OVERLAY_GAP, border: OVERLAY_BORDER },
+    );
   }
 }
 
 async function highlightOff(page: Page): Promise<void> {
   await page.evaluate((attr) => {
-    document.querySelectorAll(`[${attr}]`).forEach((el) => el.removeAttribute(attr));
-  }, HIGHLIGHT_ATTR);
+    document.querySelectorAll(`[${attr}]`).forEach((el) => el.remove());
+  }, OVERLAY_ATTR);
 }
 
 export function createCapture(page: Page, dir: string) {

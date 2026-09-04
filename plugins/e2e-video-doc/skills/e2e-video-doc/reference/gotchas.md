@@ -208,28 +208,24 @@ landed on the wrong row, because inbound and outbound records were numbered in s
 sequences and both were "81". Only the PNG showed it. Make the selector identify one
 element, and check the frame.
 
-**And a `highlight:` that matched can be gone by the time of the shot.** The recipes mark
-the element itself — an attribute, plus a CSS rule for it — and a framework throws that
-away when it remounts the node. A React card re-rendering between `highlightOn` and the
-screenshot leaves a photograph with no box on it: the `count()` passed, the test passed,
-only the PNG says otherwise. Where that happens, draw the box outside the app's tree,
-where no re-render can reach it:
+**A `highlight:` that matched could once still be gone by the time of the shot.** Both
+recipes used to mark the element itself — an attribute, plus a CSS rule for it — and a
+framework throws that mark away when it re-renders the node. Turbo replaces it with the
+server's HTML, React with the render output; neither ever carried the attribute. The loss
+was silent: the selector matched, `count()` passed, the test passed, and only the
+photograph had no box on it.
 
-```ts
-await page.evaluate((sel) => {
-  const r = document.querySelector(sel)!.getBoundingClientRect();
-  const box = document.createElement("div");
-  box.id = "e2e-overlay";
-  box.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;` +
-    `width:${r.width}px;height:${r.height}px;border:3px solid #d9534f;` +
-    `border-radius:3px;pointer-events:none;z-index:2147483647`;
-  document.body.appendChild(box);
-}, selector);
-```
+Measured on a real Rails app and on the sample: **3411 red pixels before the re-render,
+0 after, with a green test both times.** The recipes now draw the box as their own element
+appended to `document.body`, outside whatever the app re-renders, and the same probe scores
+the same number before and after. Two consequences worth knowing:
 
-It is a photograph of one instant, so draw it after any scrolling and remove it after the
-shot. `fullPage` still lines up: Chromium renders a fixed box at `scrollY + top`, which is
-where the element is — checked on a real run, not assumed.
+- The box is a photograph of one instant — it is positioned from the element's rect and
+  does not follow it afterwards. `capture` therefore draws it *after* scrolling, which is
+  the order it already used.
+- Staging this failure with `cloneNode(true)` proves nothing: a clone copies attributes, so
+  the old mark rides along and everything looks fine. The faithful stand-in is putting the
+  server's own markup back over the node (`this.outerHTML = <captured html>`).
 
 **A `scroll:` on a page that already fits is a no-op**, and returns a perfectly valid
 photograph of the top of the page. Nothing fails. If the narration says "further down",
@@ -242,6 +238,12 @@ image.
 **`focus:` suits tall regions, `highlight:` suits wide ones.** Cropping a wide, short
 element — a table row — yields something like 1280x174, which the engine then pads into
 1920x1080 with enormous bands above and below.
+
+**In the Rails recipe the two do not combine.** Selenium photographs the element at its
+exact rect and the ring is drawn just outside it, so a capture asking for both comes back
+cropped with no box on it — measured, and equally true of the outline that preceded the
+overlay. Playwright's `focusPad` crop keeps the box, because it clips the viewport rather
+than the element. Pick one per capture on Rails.
 
 ## Borrow fixture data, and give it back
 
