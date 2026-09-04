@@ -16,10 +16,15 @@ it framed it in ([#12], found while closing kydat-poc#90).
   changed, though only Playwright takes full-page shots — Selenium's is viewport-only, so
   the Capybara change is parity.
 
-  **Not reproduced here**, and worth saying: on 1.62 the old code passes the new test.
-  Playwright 1.55 does not install on this host (unsupported OS) and cannot drive the
-  newer Chromium, so the failing version could not be run. The fix removes the dependency
-  rather than patching the symptom.
+  It could not be reproduced on the machine the fix was written on — 1.55 does not install
+  there — so it shipped on the strength of removing the dependency rather than patching a
+  symptom. **The reporter then ran both recipes on 1.55**, and the numbers are worth
+  keeping. Old recipe, `position: fixed`: **28** red pixels where the ring should be, and
+  the remnant 12px low. New recipe, document coordinates: **5,164** pixels, offset 0. So
+  the real failure mode is not the box drifting to the top of the tall image, as the report
+  first read — it is the ring not surviving the stitch at all. The fix is confirmed on the
+  version that was broken, and the sample's assertions (`count > 1000`, ±2px) are what
+  catch it.
 
 - **The box no longer widens the page.** Absolute positioning made the first version add
   5px of scrollable width — a ring drawn past the right edge is new scroll area — which

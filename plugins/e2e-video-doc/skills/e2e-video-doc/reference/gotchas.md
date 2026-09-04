@@ -233,11 +233,14 @@ the same number before and after. Two consequences worth knowing:
   the order it already used.
 - **It is placed in document coordinates, not viewport ones.** A `position: fixed` box is
   placed against the window, and a full-page screenshot is not a window — it is a tall
-  image the browser stitches, and where a fixed box lands in it is a browser-version
-  question. Measured at the element's place in the document on one Playwright; reported
-  pinned near the top of the image, framing nothing, on an older one. `position: absolute`
-  plus `scrollX`/`scrollY` asks the question the picture actually answers — where is this
-  element on the page — and takes the version out of it.
+  image the browser stitches, and what happens to a fixed box in that image is a
+  browser-version question. Measured on the same page, same construction, both Playwrights:
+  on **1.62** a fixed ring lands correctly at the element (5,000-odd red pixels, no offset);
+  on **1.55** it all but disappears — **28** red pixels, and the remnant 12px below where
+  the ring should start. Not the failure anyone predicts, which is the point: nobody
+  reasons their way to "the box survives the stitch on one version and evaporates on
+  another". Drawn in document coordinates it scored 5,164 pixels at exactly the right place
+  on 1.55 as well.
 - Two details that go with that. `absolute` resolves against the nearest positioned
   ancestor, and a body with `position: relative` is not the document origin: draw the box,
   measure where it landed, shift it by the difference rather than assuming. And **clamp it
