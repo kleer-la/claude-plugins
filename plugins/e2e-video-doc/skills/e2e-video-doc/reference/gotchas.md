@@ -3,6 +3,36 @@
 Every item here was paid for once, on a real project. They are written down so nobody
 pays for them twice.
 
+## The walkthrough really does what it shows
+
+A capture run is the app doing the thing, not a picture of it. If the happy path spends
+money or leaves the building — a call to an LLM, a WhatsApp or an email, a payment, a
+webhook — then filming it spends money and leaves the building too, once per language,
+every time the video is regenerated. And if it leans on external state nobody controls —
+a real WhatsApp session, a third-party sandbox that resets — the walkthrough will break
+for reasons that have nothing to do with the product it exists to watch.
+
+**Decide where the run happens before writing a line of capture, and decide it with the
+user.** A project with those effects usually already owns the doubles for them — a fake
+provider, a fake LLM, a sandbox key — because its own tests needed them; use those, with
+an ephemeral database and the app on a port of its own, and check nothing real moved
+(`docker ps` before and after). On a project running in "local production" mode this was
+the most expensive decision of the whole session, more than any technical problem, and it
+was expensive because it was taken late.
+
+Reaching for a real session token to go faster is not the shortcut it looks like: Claude
+Code's permission classifier blocks automated use of live credentials against a live API,
+even one the user signed by hand.
+
+## A login through an external provider is not a form
+
+Google Identity Services, Auth0, a corporate SSO: there is nothing on the page to fill in,
+and driving the provider from headless Chrome is fragile where it is not refused outright.
+Do not automate it. **Inject an already-authenticated session the way the project's own
+integration tests do it** — the JWT into `localStorage`, the signed cookie, the test-only
+sign-in helper. Where that precedent exists the login step costs minutes; where it does
+not, writing it is the first task, and it is worth having regardless of the video.
+
 ## The video cannot live in `tmp/`
 
 Every capture test starts with `rm -rf` on its own directory. If the MP4 ends up there,
@@ -32,7 +62,11 @@ Python upgrade leaves it behind with a shebang naming an interpreter that no lon
 `edge-tts` pointed at a python3.7 that had been gone for a while. `check.sh` therefore
 *runs* each tool rather than merely locating it, and a hand-written `command -v` loop is
 the check we already know is not enough. `pipx install edge-tts` puts it in its own
-virtualenv and survives the next Python upgrade; `pip install` does not.
+virtualenv and survives the next Python upgrade; `pip install` does not — and on recent
+Debian and Ubuntu it is refused outright (PEP 668, `externally-managed-environment`), so
+pipx is the first step rather than the alternative. Installing pipx itself is a `sudo apt`
+away, which needs a human at a terminal; `check.sh` says exactly that when pipx is missing
+too, instead of printing a command that cannot run.
 
 ## The container name is not stable
 
@@ -174,12 +208,36 @@ landed on the wrong row, because inbound and outbound records were numbered in s
 sequences and both were "81". Only the PNG showed it. Make the selector identify one
 element, and check the frame.
 
+**And a `highlight:` that matched can be gone by the time of the shot.** The recipes mark
+the element itself — an attribute, plus a CSS rule for it — and a framework throws that
+away when it remounts the node. A React card re-rendering between `highlightOn` and the
+screenshot leaves a photograph with no box on it: the `count()` passed, the test passed,
+only the PNG says otherwise. Where that happens, draw the box outside the app's tree,
+where no re-render can reach it:
+
+```ts
+await page.evaluate((sel) => {
+  const r = document.querySelector(sel)!.getBoundingClientRect();
+  const box = document.createElement("div");
+  box.id = "e2e-overlay";
+  box.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;` +
+    `width:${r.width}px;height:${r.height}px;border:3px solid #d9534f;` +
+    `border-radius:3px;pointer-events:none;z-index:2147483647`;
+  document.body.appendChild(box);
+}, selector);
+```
+
+It is a photograph of one instant, so draw it after any scrolling and remove it after the
+shot. `fullPage` still lines up: Chromium renders a fixed box at `scrollY + top`, which is
+where the element is — checked on a real run, not assumed.
+
 **A `scroll:` on a page that already fits is a no-op**, and returns a perfectly valid
 photograph of the top of the page. Nothing fails. If the narration says "further down",
 assert that `window.scrollY` actually moved.
 
-These two are why step 3 exists — *run only the capture and look at the PNGs* — and they
-are the two it catches that nothing else does.
+These are why step 3 exists — *run only the capture and look at the PNGs* — and they are
+what it catches that nothing else does: each of them leaves a green test and a wrong
+image.
 
 **`focus:` suits tall regions, `highlight:` suits wide ones.** Cropping a wide, short
 element — a table row — yields something like 1280x174, which the engine then pads into

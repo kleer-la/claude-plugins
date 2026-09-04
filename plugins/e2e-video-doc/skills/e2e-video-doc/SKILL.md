@@ -62,18 +62,25 @@ any were.
 
 1. **Ask what the walkthrough has to show** — do not guess. What the user achieves, where
    it starts, where it ends.
-2. **Write the walkthrough** in the project's stack, copying the capture helper from the
+2. **Decide with the user where it will run.** Does the happy path spend money or leave
+   the building — an LLM call, a message, a payment — or depend on external state nobody
+   controls, like a live third-party session? Then filming it does too, once per language,
+   on every regeneration. Use the doubles the project already has for its own tests, on an
+   ephemeral database and its own port. This is not a technical question and it is not
+   yours to settle alone; taken late, it was the most expensive hour of a real session.
+3. **Write the walkthrough** in the project's stack, copying the capture helper from the
    matching recipe. Use the factories and helpers the project already has; do not seed
    data by hand if there is a seed.
-3. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
-   here is far cheaper than after the audio exists. Two failures pass the test and only
-   show up in the image: a `highlight:` that framed the *first* match rather than the
-   right one, and a `scroll:` that did nothing because the page already fitted.
+4. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
+   here is far cheaper than after the audio exists. Three failures pass the test and only
+   show up in the image: a `highlight:` that framed the *first* match rather than the right
+   one, a `highlight:` the framework threw away by remounting the node before the shot, and
+   a `scroll:` that did nothing because the page already fitted.
    On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
-4. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
+5. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
    One entry per capture, in order.
-5. **Add the flow** to `e2e-video-doc.json`.
-6. **Generate the video and watch it.**
+6. **Add the flow** to `e2e-video-doc.json`.
+7. **Generate the video and watch it.**
 
 ## When the walkthrough breaks
 

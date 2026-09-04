@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.2.2
+
+A second outside run, this one end to end on a real Node/Nest app in "local production"
+mode ([#9]): MP4 out, 8 of 8 captures used, nothing about the engine or the recipe
+surprised anyone. Everything below is about the decisions the skill left implicit — which
+is where the whole session's time actually went.
+
+### Changed
+
+- **`check.sh` no longer assumes pipx exists.** `edge-tts` missing used to answer
+  `pipx install edge-tts`, and on a clean Ubuntu that is a command-not-found: pipx is not
+  there, and `pip install` is refused outright (PEP 668,
+  `externally-managed-environment`), so pipx is the first step rather than the
+  alternative. When pipx is missing too, the check now prints the bootstrap for the
+  platform and says plainly that the `sudo` needs a human at a terminal — which is exactly
+  where the reported run stalled, an agent with no way to type a password.
+
+### Documented
+
+- **Decide where the walkthrough runs, with the user, before writing any of it.** The
+  capture run is the app really doing the thing: if the happy path calls an LLM, sends a
+  message or takes a payment, filming it does too, once per language, on every
+  regeneration — and external state nobody controls breaks the run for reasons that are
+  not the product. The skill assumed a test environment already existed; on a project
+  running against real containers this was the most expensive decision of the session, and
+  it is now step 2 of *Creating a new flow*.
+- **A login through an external provider is not a form.** Google Identity Services, Auth0,
+  SSO: do not automate the provider, inject an already-authenticated session the way the
+  project's own integration tests do.
+- **A `highlight:` can match and still be gone by the shot.** The recipes mark the element
+  itself, and a framework remounting the node between `highlightOn` and the screenshot
+  takes the mark with it — `count()` passed, the test passed, the PNG has no box on it.
+  A third silent failure alongside the two already documented; gotchas now carries the
+  mitigation, a box appended to `document.body` outside the app's tree, and the check that
+  it also lines up under `fullPage`.
+
+[#9]: https://github.com/kleer-la/claude-plugins/issues/9
+
 ## 0.2.1
 
 The first report from someone outside the team who installed it cold ([#8]). The engine
