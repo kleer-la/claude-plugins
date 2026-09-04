@@ -56,7 +56,8 @@ module VideoRecording
   #            is drawn just outside the element, which is precisely what Selenium leaves
   #            out. Measured, and equally true of the outline this replaced — pick one.
   # assert_in_frame: selector — refuse to take the picture unless that element is whole
-  #            inside the viewport and nothing is covering it. See `frame_problem`.
+  #            inside the viewport and nothing is covering it. See `frame_problem`. Takes
+  #            the same forms as `scroll:` — plain CSS, "css:...", or "text:<substring>".
   def capture(name, pause: 0.4, scroll: nil, highlight: nil, focus: nil, assert_in_frame: nil)
     apply_scroll(scroll) if scroll
     # Before the box is drawn, because putting the scroll right afterwards would leave the
@@ -120,11 +121,21 @@ module VideoRecording
     when :bottom then page.execute_script("window.scrollTo(0, document.body.scrollHeight)")
     when :top then page.execute_script("window.scrollTo(0, 0)")
     when Integer then page.execute_script("window.scrollBy(0, arguments[0])", scroll)
-    when /\Acss:(.+)\z/ then scroll_into_view(find(Regexp.last_match(1), match: :first, visible: :all))
-    when /\Atext:(.+)\z/
-      # By visible text, for screens where nothing useful has a stable selector.
-      scroll_into_view(find(:xpath, "//*[contains(text(), '#{Regexp.last_match(1)}')]", match: :first, visible: :all))
+    when String then scroll_into_view(locate(scroll))
     else raise ArgumentError, "unrecognized scroll: #{scroll.inspect}"
+    end
+  end
+
+  # One way of naming an element for every option that takes one, so `scroll:` and
+  # `assert_in_frame:` can be given the same string. `text:` is there for the screens the
+  # gotchas warn about — a report whose sections are Bootstrap cards with no id on them,
+  # where the only stable handle is the heading a reader can see.
+  def locate(selector)
+    case selector
+    when /\Acss:(.+)\z/ then find(Regexp.last_match(1), match: :first, visible: :all)
+    when /\Atext:(.+)\z/
+      find(:xpath, "//*[contains(text(), '#{Regexp.last_match(1)}')]", match: :first, visible: :all)
+    else find(selector, match: :first, visible: :all)
     end
   end
 
@@ -148,7 +159,7 @@ module VideoRecording
   # the rectangle. The overlay this recipe draws has `pointer-events: none`, so
   # elementFromPoint looks straight through it.
   def frame_problem(selector)
-    find(selector, match: :first, visible: :all).evaluate_script(<<~JS)
+    locate(selector).evaluate_script(<<~JS)
       (() => {
         const r = this.getBoundingClientRect();
         if (r.width === 0 || r.height === 0) return "has no box on the page";
@@ -174,7 +185,7 @@ module VideoRecording
     if scroll
       apply_scroll(scroll)
     else
-      scroll_into_view(find(selector, match: :first, visible: :all))
+      scroll_into_view(locate(selector))
     end
     sleep 0.3
     return unless (problem = frame_problem(selector))

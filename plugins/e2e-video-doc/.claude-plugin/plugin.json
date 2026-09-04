@@ -1,6 +1,6 @@
 {
   "name": "e2e-video-doc",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Walks the application like a real user and produces a narrated video, screenshots and the detail of each API call. The walkthrough is an E2E test: when it breaks, the screen changed.",
   "author": {
     "name": "Kleer"

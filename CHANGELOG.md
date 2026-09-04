@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+### Added
+
+- **`assert_in_frame:` takes the same selector forms as `scroll:`** in the Capybara recipe
+  — plain CSS, `"css:…"` or `"text:…"` — so a capture can name its subject once and hand
+  the same string to both. Found while applying 0.3.0 to a real report screen: its sections
+  are Bootstrap cards with no id on them, and the only stable handle is the heading a reader
+  can see, which is exactly why `scroll:` grew `text:` in the first place. The Playwright
+  recipe already had this, because Playwright's own selector engine understands `text=`.
+
 ## 0.3.0
 
 Five hand-maintained copies of `capture` in one project ([jaomai#70]) turned out to hold

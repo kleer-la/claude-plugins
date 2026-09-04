@@ -41,7 +41,7 @@ test("placing an order", { tag: "@video" }, async ({ page }) => {
 | `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"` \| `"text:<substring>"`. |
 | `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. |
 | `pauseMs` | Wait before the shot (default 400). |
-| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. |
+| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. |
 
 `dismissBanner(page, selector)` closes whatever your stack puts on top of the page — a
 component library's trial strip, a staging ribbon, a debug bar. Call it once in a
