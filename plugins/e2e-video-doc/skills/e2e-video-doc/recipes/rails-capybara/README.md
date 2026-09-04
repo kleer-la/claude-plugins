@@ -63,3 +63,17 @@ end
 docker exec -e RUN_VIDEO_TESTS=1 "$(bash "$E2E_VIDEO_DOC_ENGINE/devcontainer.sh" web)" \
   bin/rails test test/system/checkout_video_test.rb
 ```
+
+## After every update of the helper
+
+Copy `highlight_regression_test.rb` into `test/system/` and run it:
+
+```
+bin/rails test test/system/highlight_regression_test.rb
+```
+
+It proves the one property that was silently false for two releases — the red box outlives
+a re-render of the node it frames, because it is drawn on `document.body` rather than as a
+mark on the element. Turbo streams, React renders and DevExpress grid callbacks all
+replace that node with markup that never carried a mark, and when they do, nothing else
+fails: the selector matched, the test is green, only the photograph is empty.

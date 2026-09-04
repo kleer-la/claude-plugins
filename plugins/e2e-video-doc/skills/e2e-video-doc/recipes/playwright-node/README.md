@@ -78,3 +78,15 @@ await capture("token_issued");
 **Labels are configurable.** The card says `request` / `response` by default; if the
 narration is in another language, pass `labels: { request: "pedido", response: "respuesta" }`
 so the card matches the voice.
+
+## After every update of the helper
+
+The plugin repository ships `examples/sample-app/tests/highlight.spec.ts`, which stages a
+re-render of the framed node inside `capture`'s own pause and counts the red pixels in the
+resulting PNGs. It exists because a fork of this recipe carried a silent failure for two
+releases: the box used to be a mark on the element, and any framework that re-renders that
+node took the box with it — green test, empty photograph.
+
+If you copied this recipe, copy that spec too and point it at a page of your own. If you
+*forked* the recipe, `highlightOn`/`highlightOff` are the parts that must be re-ported on
+every update, and that spec is how you find out whether you did.

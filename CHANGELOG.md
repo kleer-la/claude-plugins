@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.3.2
+
+Everything here comes from porting the 0.2.3 overlay into a **fork** of the Playwright
+recipe ([#11]) — a case the skill did not describe, in the repo most exposed to the bug it
+fixed.
+
+### Added
+
+- **A regression test for the highlight, in both recipes.** `examples/sample-app/tests/
+  highlight.spec.ts` stages a re-render of the framed node from a timer inside `capture`'s
+  own pause and counts the red pixels in the PNGs; it scores the same box before and after,
+  and **0** after when run against the pre-0.2.3 implementation, which is how it was
+  verified. `recipes/rails-capybara/highlight_regression_test.rb` is its Capybara
+  counterpart, to copy into `test/system/`: it asserts the box outlives the re-render at
+  the DOM level, so it needs no image decoding, no fixtures and no particular screen. Both
+  were run in both directions.
+
+### Documented
+
+- **`SKILL.md` carries the re-render failure now, not only `gotchas.md`.** Agents follow
+  the skill, and it still listed two silent failures where there had been three. It now
+  says what the recipes do about the third (the box is its own element on `document.body`)
+  and that **any hand-written helper or fork has to keep that property** — with Turbo
+  streams, React renders and DevExpress grid callbacks named, because they are the same
+  failure wearing three different hats.
+- **Copy the recipe, do not fork it.** Project-specific work wraps the helper from
+  outside; edits inside it have to be re-ported by hand on every update, which is how a
+  real fork stayed on the broken mechanism for two releases. Where a fork already exists,
+  `highlightOn`/`highlightOff` are the parts to re-port.
+- **The installed copy can be older than the plugin.** `/plugin marketplace update` does
+  not always leave the clone matching GitHub, and nothing in the skill files says so: one
+  project ported a fix from the repository while its own installed `capture.ts` still had
+  the old mechanism, so an agent following the local skill would have rebuilt the bug.
+  Check `plugin.json` against `CHANGELOG.md` before trusting a local copy.
+
+[#11]: https://github.com/kleer-la/claude-plugins/issues/11
+
 ## 0.3.1
 
 ### Added

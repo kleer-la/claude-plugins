@@ -96,6 +96,14 @@ which names neither the file nor the cause. The repo's `.gitattributes` pins `*.
 `eol=lf`, and `make_videos.ps1` pipes the script through `tr -d '\r'` on the way into WSL
 so clones that already exist keep working.
 
+**The copy you are reading may be older than the plugin.** `/plugin marketplace update`
+does not always leave the installed clone matching what is on GitHub, and the skill files
+give no sign of it: a project ported a fix from the repository while its own installed
+`capture.ts` still had the old mechanism in it, so an agent following the local skill
+would have rebuilt the bug it had just removed. Check before trusting a local copy —
+`.claude-plugin/plugin.json` carries the version, and `CHANGELOG.md` says what that
+version should contain. Re-adding the marketplace is the blunt fix.
+
 **`.gitattributes` only reaches a fresh clone.** Git will not rewrite a working-tree file
 whose blob did not change, so `/plugin marketplace update` leaves an existing clone's
 `.sh` files CRLF — confirmed on a real machine. Re-add the marketplace, or in the clone:
