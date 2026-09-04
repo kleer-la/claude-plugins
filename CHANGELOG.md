@@ -1,5 +1,48 @@
 # Changelog
 
+## 0.3.0
+
+Five hand-maintained copies of `capture` in one project ([jaomai#70]) turned out to hold
+four things the recipe did not. This takes them upstream, so the next project inherits
+them by copying a file instead of by suffering.
+
+### Added
+
+- **`assert_in_frame:` / `assertInFrame`** — name the element the narration points at, and
+  the capture refuses to be taken while that element is not whole in the viewport, or is
+  covered by something. It asks the document what is actually painted at the middle of the
+  element (`elementFromPoint`), so a sticky header, a modal or a cookie wall is caught, not
+  merely a rectangle that looks fine. Checked twice: before the highlight is drawn, where a
+  failure buys one more centred scroll, and again immediately before the shutter, where it
+  raises — that is the moment the camera sees. Adapted from the `subject:` option one
+  project had grown on its own.
+- The sample app now carries a **sticky header and `scroll-behavior: smooth`**, and
+  `tests/framing.spec.ts` exercises the rules against them: a scroll that must have landed
+  by the shutter, a subject under a cookie wall that must be refused, an element with no box
+  that must be refused. Those are the conditions of a real Bootstrap-shaped app, so the
+  fixture now has them.
+
+### Fixed
+
+- **The Capybara recipe scrolled smoothly and photographed mid-flight.** Bootstrap 5 ships
+  `@media (prefers-reduced-motion: no-preference) { :root { scroll-behavior: smooth } }` and
+  headless Chrome reports no-preference, so on a Bootstrap app every `scroll:` was an
+  animation racing `pause`. Measured on the sample: `scrollIntoView({block: "center"})` read
+  `scrollY` 0 immediately and 190 six-tenths of a second later. The recipe now asks for
+  `behavior: "instant"`; with the old code and `pause: 0` the framing check fails, which is
+  how the fix was verified. **Playwright's `scrollIntoViewIfNeeded` was never affected** —
+  measured at 190 immediately on the same page — so only one recipe changed.
+
+### Documented
+
+- Turbo restores the scroll position asynchronously after a navigation, so a scroll applied
+  too early is undone in silence. The retry inside the framing check covers it, which is
+  cheaper than the blind `sleep` it was costing one project.
+- A pinned navbar hides the subject while `scrollIntoViewIfNeeded` and `align: :top` both
+  consider it in view. Centring is the answer, and it is what the retry does.
+
+[jaomai#70]: https://github.com/kleer-la/jaomai/issues/70
+
 ## 0.2.3
 
 The remount failure #9 reported, fixed in both recipes rather than only written down

@@ -27,6 +27,7 @@ Screenshots go to `tmp/video_screenshots/<scenario_name>/`. **The MP4 cannot sta
 | `focus:` | Photographs only that element. **No padding** — see below. |
 | `scroll:` | `:top` \| `:bottom` \| Integer \| `"css:<selector>"` \| `"text:<substring>"`. |
 | `pause:` | Wait before the shot (default 0.4). |
+| `assert_in_frame:` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more and re-checks before giving up. |
 
 `dismiss_banner(selector)` closes what sits on top of the page — a trial strip, a
 dev-environment bar, a notification prompt — and does nothing if it is not there. Call it

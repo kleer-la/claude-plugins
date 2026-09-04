@@ -55,12 +55,25 @@ module VideoRecording
   #            A `highlight:` on the same capture will not appear in the crop: the ring
   #            is drawn just outside the element, which is precisely what Selenium leaves
   #            out. Measured, and equally true of the outline this replaced — pick one.
-  def capture(name, pause: 0.4, scroll: nil, highlight: nil, focus: nil)
+  # assert_in_frame: selector — refuse to take the picture unless that element is whole
+  #            inside the viewport and nothing is covering it. See `frame_problem`.
+  def capture(name, pause: 0.4, scroll: nil, highlight: nil, focus: nil, assert_in_frame: nil)
     apply_scroll(scroll) if scroll
+    # Before the box is drawn, because putting the scroll right afterwards would leave the
+    # box behind at the old position — it is placed once and does not follow.
+    ensure_in_frame(assert_in_frame, scroll) if assert_in_frame
     marks = Array(highlight)
     highlight_on(marks) if marks.any?
 
     sleep pause
+    # Again, after the pause and immediately before the shutter, because this is what the
+    # camera will see. Turbo resets the scroll position asynchronously after a navigation,
+    # so a scroll can still be undone in the time it takes to settle — and that produces a
+    # perfectly valid photograph of the wrong part of the page.
+    if assert_in_frame && (problem = frame_problem(assert_in_frame))
+      raise "capture(#{name.inspect}): #{assert_in_frame.inspect} #{problem} at the moment of the shot"
+    end
+
     @step += 1
     filename = format("%02d_%s.png", @step, name)
     target = screenshot_dir.join(filename)
@@ -117,8 +130,56 @@ module VideoRecording
 
   # `this`, not arguments[0]: Capybara's Element#execute_script applies the script with
   # the element as the receiver, unlike page.execute_script where it would be passed in.
+  #
+  # `behavior: "instant"` is not decoration. Bootstrap 5 ships
+  # `@media (prefers-reduced-motion: no-preference) { :root { scroll-behavior: smooth } }`,
+  # and headless Chrome reports no-preference — so on a Bootstrap app every scroll
+  # animates, and whether the shot catches the page mid-flight is a race against `pause`.
+  # `block: "center"` is the other half: `:top` parks the element under a fixed navbar.
   def scroll_into_view(element)
-    element.execute_script("this.scrollIntoView({block: 'center'})")
+    element.execute_script("this.scrollIntoView({block: 'center', behavior: 'instant'})")
+  end
+
+  # Nil when the element is whole in the viewport and visible; otherwise a phrase saying
+  # what is wrong with it. Three ways a capture goes silently wrong: the subject is off
+  # the top or bottom of the frame, it has no box at all, or something is sitting on top
+  # of it — a fixed navbar, a modal, a cookie bar. The last one is why this asks the
+  # document what is actually painted at the middle of the element rather than trusting
+  # the rectangle. The overlay this recipe draws has `pointer-events: none`, so
+  # elementFromPoint looks straight through it.
+  def frame_problem(selector)
+    find(selector, match: :first, visible: :all).evaluate_script(<<~JS)
+      (() => {
+        const r = this.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return "has no box on the page";
+        if (r.top < 0) return "starts " + Math.round(-r.top) + "px above the frame";
+        if (r.bottom > window.innerHeight) return "runs " + Math.round(r.bottom - window.innerHeight) + "px past the bottom of the frame";
+        if (r.left < 0 || r.right > window.innerWidth) return "runs off the side of the frame";
+        const over = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        if (over && over !== this && !this.contains(over)) {
+          const cls = over.className && typeof over.className === "string" ? "." + over.className.trim().split(/\s+/).join(".") : "";
+          return "is covered by <" + over.tagName.toLowerCase() + cls + ">";
+        }
+        return null;
+      })()
+    JS
+  end
+
+  # One retry, then a loud failure. The retry is for Turbo: it resets the scroll position
+  # asynchronously after a navigation, so a scroll applied a moment too early is undone
+  # and the page is back at the top with nothing complaining.
+  def ensure_in_frame(selector, scroll)
+    return unless (problem = frame_problem(selector))
+
+    if scroll
+      apply_scroll(scroll)
+    else
+      scroll_into_view(find(selector, match: :first, visible: :all))
+    end
+    sleep 0.3
+    return unless (problem = frame_problem(selector))
+
+    raise "capture: #{selector.inspect} #{problem}, and scrolling again did not fix it"
   end
 
   def highlight_on(selectors)

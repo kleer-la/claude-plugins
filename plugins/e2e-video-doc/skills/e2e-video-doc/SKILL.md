@@ -74,7 +74,9 @@ any were.
 4. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
    here is far cheaper than after the audio exists. Two failures pass the test and only
    show up in the image: a `highlight:` that framed the *first* match rather than the
-   right one, and a `scroll:` that did nothing because the page already fitted.
+   right one, and a `scroll:` that did nothing because the page already fitted. Both stop
+   being silent if you name the subject: `assert_in_frame:` / `assertInFrame` refuses to
+   photograph a screen where the thing the narration points at is out of frame or covered.
    On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
 5. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
    One entry per capture, in order.

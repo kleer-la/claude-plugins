@@ -245,6 +245,49 @@ cropped with no box on it — measured, and equally true of the outline that pre
 overlay. Playwright's `focusPad` crop keeps the box, because it clips the viewport rather
 than the element. Pick one per capture on Rails.
 
+## The page is still moving when the shutter opens
+
+**Scrolling animates, and the capture does not wait for it.** Bootstrap 5 ships
+`@media (prefers-reduced-motion: no-preference) { :root { scroll-behavior: smooth } }`,
+and headless Chrome reports no-preference — so on a Bootstrap app *every* scroll is an
+animation, and whether the shot catches the page mid-flight is a race against `pause`.
+Measured on the sample: a plain `scrollIntoView({block: "center"})` read `scrollY` 0
+immediately and 190 six-tenths of a second later.
+
+The two recipes were not equally exposed, which is not something you would work out from
+first principles:
+
+- **Capybara/Selenium went through the page's own JS and animated.** The recipe now asks
+  for `behavior: "instant"`. Without it, and with `pause: 0`, the framing check below
+  fails — that is how the fix was verified.
+- **Playwright's `scrollIntoViewIfNeeded` is instant** regardless of the CSS: measured at
+  190 immediately and 190 later, on the same page. Nothing to fix there.
+
+**Turbo restores the scroll position asynchronously after a navigation**, so a scroll
+applied a moment too early is quietly undone and the photograph is of the top of the page.
+Paid for on a real project, which bought a blind `sleep 0.4` before every scroll. The
+recipes take the cheaper route: check that the subject is where it should be, and scroll
+again if it is not.
+
+**A pinned navbar hides the subject and nothing notices.** `scrollIntoViewIfNeeded` and
+`align: :top` both consider an element parked under a fixed bar to be in view, so the
+element is technically on screen and visually gone. Centring is the fix, and it is what
+both recipes do on the retry.
+
+## Say what the picture has to contain
+
+`assert_in_frame:` (Rails) and `assertInFrame` (Playwright) refuse to take a picture in
+which the subject is not whole in the viewport, or is covered by something. They ask the
+document what is actually painted at the middle of the element — `elementFromPoint` — so a
+cookie wall, a modal, or a sticky header is caught, not just a bad rectangle. The check
+runs twice: once before the box is drawn, where a failure buys one more centred scroll,
+and once immediately before the shutter, where it raises, because that is the moment the
+camera sees.
+
+Use it on the element the narration is pointing at. It is the difference between a
+walkthrough that fails when the screen changes and one that quietly photographs the wrong
+part of the page.
+
 ## Borrow fixture data, and give it back
 
 When the walkthrough needs to touch shared data (a known password, a config flag, an

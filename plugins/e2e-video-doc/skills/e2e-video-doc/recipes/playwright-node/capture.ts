@@ -77,6 +77,34 @@ async function highlightOff(page: Page): Promise<void> {
   }, OVERLAY_ATTR);
 }
 
+/** Nil when the element is whole in the viewport and visible; otherwise a phrase saying
+ *  what is wrong with it. Three ways a capture goes silently wrong: the subject is off the
+ *  top or bottom of the frame, it has no box at all, or something is sitting on top of it
+ *  — a sticky header, a modal, a cookie bar. The last is why this asks the document what
+ *  is actually painted at the middle of the element rather than trusting the rectangle.
+ *  The overlay drawn above has `pointer-events: none`, so elementFromPoint sees past it. */
+async function frameProblem(page: Page, selector: string): Promise<string | null> {
+  const loc = page.locator(selector).first();
+  if (!(await loc.count())) return `did not match anything`;
+  return loc.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return "has no box on the page";
+    if (r.top < 0) return `starts ${Math.round(-r.top)}px above the frame`;
+    if (r.bottom > window.innerHeight)
+      return `runs ${Math.round(r.bottom - window.innerHeight)}px past the bottom of the frame`;
+    if (r.left < 0 || r.right > window.innerWidth) return "runs off the side of the frame";
+    const over = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    if (over && over !== el && !el.contains(over)) {
+      const cls =
+        typeof over.className === "string" && over.className.trim()
+          ? "." + over.className.trim().split(/\s+/).join(".")
+          : "";
+      return `is covered by <${over.tagName.toLowerCase()}${cls}>`;
+    }
+    return null;
+  });
+}
+
 export function createCapture(page: Page, dir: string) {
   let step = 0;
   return async function capture(
@@ -90,6 +118,9 @@ export function createCapture(page: Page, dir: string) {
       /** Crops the image around this selector, with `focusPad` px of air. */
       focus?: string;
       focusPad?: number;
+      /** Refuse to take the picture unless this element is whole in the frame and
+       *  nothing is covering it. */
+      assertInFrame?: string;
     },
   ) {
     const scroll = opts?.scroll;
@@ -105,6 +136,28 @@ export function createCapture(page: Page, dir: string) {
       // By visible text, for screens where nothing useful has a stable selector.
       await page.getByText(scroll.slice(5)).first().scrollIntoViewIfNeeded();
     }
+    // Checked before the box is drawn, because scrolling afterwards would leave the box
+    // behind at the old position — it is placed once and does not follow.
+    if (opts?.assertInFrame) {
+      let problem = await frameProblem(page, opts.assertInFrame);
+      if (problem) {
+        // One retry, centred rather than minimal. Two things it fixes: a framework that
+        // restores scroll position asynchronously after a navigation, undoing a scroll
+        // applied a moment too early; and an element parked under a sticky header, which
+        // scrollIntoViewIfNeeded considers already in view and will not move.
+        await page
+          .locator(opts.assertInFrame)
+          .first()
+          .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
+        await page.waitForTimeout(300);
+        problem = await frameProblem(page, opts.assertInFrame);
+        if (problem)
+          throw new Error(
+            `capture(${name}): ${opts.assertInFrame} ${problem}, and scrolling again did not fix it`,
+          );
+      }
+    }
+
     const highlight = opts?.highlight
       ? Array.isArray(opts.highlight)
         ? opts.highlight
@@ -113,6 +166,16 @@ export function createCapture(page: Page, dir: string) {
     if (highlight.length) await highlightOn(page, highlight);
 
     await page.waitForTimeout(opts?.pauseMs ?? 400);
+    // Again, after the pause and immediately before the shutter, because this is what the
+    // camera will see: a scroll can still be undone while the page settles, and that
+    // produces a perfectly valid photograph of the wrong part of the page.
+    if (opts?.assertInFrame) {
+      const problem = await frameProblem(page, opts.assertInFrame);
+      if (problem)
+        throw new Error(
+          `capture(${name}): ${opts.assertInFrame} ${problem} at the moment of the shot`,
+        );
+    }
     step += 1;
     const filename = `${String(step).padStart(2, "0")}_${name}.png`;
 

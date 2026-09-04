@@ -1,5 +1,6 @@
 :root {
   color-scheme: light;
+  scroll-behavior: smooth;
   --ink: #1b1f24;
   --muted: #66707b;
   --line: #dfe4ea;
@@ -12,9 +13,14 @@ body {
   margin: 0; background: var(--bg); color: var(--ink);
   font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
+/* Sticky, and the page scrolls smoothly — both on purpose. Bootstrap 5 turns smooth
+   scrolling on by default and most real apps pin their navbar, and those two together are
+   what break naive capture code: the shot lands mid-animation, or on an element parked
+   underneath the bar. The sample carries them so the recipe is exercised against them. */
 header {
   background: #fff; border-bottom: 1px solid var(--line);
   padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
 }
 header h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
 header .cart-count { color: var(--muted); font-size: 15px; }
