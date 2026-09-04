@@ -1,7 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { Page } from "@playwright/test";
+import { redPixels } from "./pixels";
 import {
   createCapture,
   resetDir,
@@ -16,28 +14,6 @@ import {
 const SHOTS = "tmp/highlight";
 const CATALOG = "#catalog";
 const SEL = '[data-sku="CUP-010"]';
-
-/** Pixels close to the highlight's #d9534f, counted by drawing the PNG into a canvas in
- *  the browser — no image library, and no dependency on ffmpeg being installed. */
-async function redPixels(page: Page, file: string): Promise<number> {
-  const b64 = readFileSync(join(process.cwd(), SHOTS, file)).toString("base64");
-  return page.evaluate(async (src) => {
-    const img = new Image();
-    img.src = `data:image/png;base64,${src}`;
-    await img.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext("2d")!;
-    ctx.drawImage(img, 0, 0);
-    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let n = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i] > 170 && data[i + 1] < 120 && data[i + 2] < 120) n++;
-    }
-    return n;
-  }, b64);
-}
 
 test("the box survives the framework re-rendering the node it frames", async ({ page }) => {
   resetDir(SHOTS);
@@ -65,9 +41,9 @@ test("the box survives the framework re-rendering the node it frames", async ({ 
   );
   const remounted = await capture("remounted", { highlight: SEL, pauseMs: 500 });
 
-  const clean = await redPixels(page, control);
-  const drawn = await redPixels(page, baseline);
-  const survived = await redPixels(page, remounted);
+  const clean = await redPixels(page, SHOTS, control);
+  const drawn = await redPixels(page, SHOTS, baseline);
+  const survived = await redPixels(page, SHOTS, remounted);
 
   expect(clean, "the page draws no red of its own, so any red is the box").toBe(0);
   expect(drawn, "the box is in the undisturbed shot").toBeGreaterThan(1000);

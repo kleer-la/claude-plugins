@@ -118,9 +118,15 @@ module VideoRecording
 
   def apply_scroll(scroll)
     case scroll
-    when :bottom then page.execute_script("window.scrollTo(0, document.body.scrollHeight)")
-    when :top then page.execute_script("window.scrollTo(0, 0)")
-    when Integer then page.execute_script("window.scrollBy(0, arguments[0])", scroll)
+    # Every branch says `behavior: "instant"` for the same reason `scroll_into_view` does:
+    # `window.scrollTo(0, y)` is the two-argument form, which means `behavior: "auto"`,
+    # which resolves to the element's computed `scroll-behavior` — smooth, on any
+    # Bootstrap app. Measured: 0 immediately and 190 seven-tenths of a second later.
+    when :bottom
+      page.execute_script("window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})")
+    when :top then page.execute_script("window.scrollTo({top: 0, behavior: 'instant'})")
+    when Integer
+      page.execute_script("window.scrollBy({top: arguments[0], behavior: 'instant'})", scroll)
     when String then scroll_into_view(locate(scroll))
     else raise ArgumentError, "unrecognized scroll: #{scroll.inspect}"
     end

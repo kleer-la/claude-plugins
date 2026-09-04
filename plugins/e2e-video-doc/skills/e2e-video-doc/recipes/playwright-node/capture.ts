@@ -124,12 +124,18 @@ export function createCapture(page: Page, dir: string) {
     },
   ) {
     const scroll = opts?.scroll;
+    // `behavior: "instant"` on every branch: `window.scrollTo(0, y)` is the two-argument
+    // form, which means `behavior: "auto"`, which resolves to the computed
+    // `scroll-behavior` — smooth on any Bootstrap app, and then the shot is a race
+    // against the pause. Measured on the sample: 0 immediately, 190 seven-tenths later.
     if (scroll === "bottom") {
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await page.evaluate(() =>
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }),
+      );
     } else if (scroll === "top") {
-      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     } else if (typeof scroll === "number") {
-      await page.evaluate((n) => window.scrollBy(0, n), scroll);
+      await page.evaluate((n) => window.scrollBy({ top: n, behavior: "instant" }), scroll);
     } else if (typeof scroll === "string" && scroll.startsWith("css:")) {
       await page.locator(scroll.slice(4)).first().scrollIntoViewIfNeeded();
     } else if (typeof scroll === "string" && scroll.startsWith("text:")) {

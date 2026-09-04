@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.3.3
+
+0.3.0 made `scroll:` instant and only got half of it. Found while updating a downstream
+issue and looking at what that project's flow actually calls: every one of its captures
+uses `scroll: :bottom`, which was the half still animating.
+
+### Fixed
+
+- **`:bottom`, `:top` and the pixel offset scrolled smoothly too.** `window.scrollTo(0, y)`
+  is the two-argument form, which means `behavior: "auto"`, which resolves to the computed
+  `scroll-behavior` — smooth on a Bootstrap app, or anywhere a stylesheet asks for it. Only
+  `scroll_into_view` was fixed in 0.3.0. All branches now pass `behavior: "instant"`.
+
+  **Demonstrated on Capybara/Selenium**, which is where it bites: with the old code, the
+  scroll position one command after `apply_scroll(:bottom)` was **0** on a 4213px page, and
+  4213 once it settled — so a capture with a short pause photographs the top of the page and
+  calls it the bottom. With the fix it is 4213 immediately. The longer the page, the worse:
+  a default `pause: 0.4` covers a short scroll and not a long one, which is why this can sit
+  in a project for months looking fine.
+
+  **On Playwright the same change is a guard, not a demonstrated fix.** The bare capture
+  path there completed the scroll before the shutter in every measurement, and two probes of
+  the underlying behaviour disagreed with each other, so the honest claim is parity with the
+  Capybara recipe and protection if that ever changes — not a bug caught.
+
+### Added
+
+- `examples/sample-app/tests/framing.spec.ts` gains a bottom-scroll case, and it takes two
+  photographs — one immediately, one after the page cannot still be moving — and asserts they
+  are of the same place. It deliberately passes neither `highlight:` nor `assertInFrame`:
+  `boundingBox()` inside `highlightOn` scrolls the element into view, and the framing check's
+  retry re-centres it, so **either option quietly corrects the very thing under test**. That
+  is worth knowing before writing any test in this area; two earlier versions of this one
+  passed against a deliberately broken recipe for exactly that reason.
+- `examples/sample-app/tests/pixels.ts` — `redPixels` and `frameDiff`, shared by the
+  fixtures. Both decode PNGs by drawing them into a canvas in the browser, so the tests need
+  no image library and no ffmpeg.
+
 ## 0.3.2
 
 Everything here comes from porting the 0.2.3 overlay into a **fork** of the Playwright
