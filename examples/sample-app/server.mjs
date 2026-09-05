@@ -11,12 +11,15 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("./public", import.meta.url));
 const PORT = Number(process.env.PORT ?? 3210);
 
+// Names in both languages: a walkthrough narrated in English over a Spanish catalogue
+// reads as a mistake rather than as a translation, which is the rule the plugin's own
+// gotchas insist on. Prices and SKUs are the same either way.
 const PRODUCTS = [
-  { sku: "TEA-001", name: "Yerba mate, 1kg", price: 4200 },
-  { sku: "TEA-002", name: "Té de menta, 100g", price: 1850 },
-  { sku: "CUP-010", name: "Mate de calabaza", price: 9500 },
-  { sku: "CUP-011", name: "Bombilla de acero", price: 3400 },
-  { sku: "GFT-100", name: "Set de regalo", price: 15800 },
+  { sku: "TEA-001", price: 4200, name: { en: "Yerba mate, 1kg", es: "Yerba mate, 1kg" } },
+  { sku: "TEA-002", price: 1850, name: { en: "Mint tea, 100g", es: "Té de menta, 100g" } },
+  { sku: "CUP-010", price: 9500, name: { en: "Gourd mate cup", es: "Mate de calabaza" } },
+  { sku: "CUP-011", price: 3400, name: { en: "Steel straw", es: "Bombilla de acero" } },
+  { sku: "GFT-100", price: 15800, name: { en: "Gift set", es: "Set de regalo" } },
 ];
 
 const orders = [];
@@ -43,7 +46,12 @@ const readBody = (req) =>
 createServer(async (req, res) => {
   const { pathname } = new URL(req.url, `http://${req.headers.host}`);
 
-  if (pathname === "/api/products") return json(res, 200, { products: PRODUCTS });
+  if (pathname === "/api/products") {
+    const lang = new URL(req.url, `http://${req.headers.host}`).searchParams.get("lang") === "es" ? "es" : "en";
+    return json(res, 200, {
+      products: PRODUCTS.map((p) => ({ sku: p.sku, price: p.price, name: p.name[lang] })),
+    });
+  }
 
   if (pathname === "/api/orders" && req.method === "POST") {
     const body = await readBody(req);

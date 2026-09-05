@@ -2,41 +2,33 @@
 
 The smallest application worth filming: a catalogue, a cart, a form, and one API call.
 
+**What it produces:** [English](https://youtu.be/h2U_B-G8fZg) · [Español](https://youtu.be/M0JQVx_tBEg)
+
 It exists for three reasons — it is the ten-minute way to see the plugin work without
 owning a suitable project, it is the regression fixture for the Playwright recipe, and the
 video it produces is the one we can show people.
 
 ## Run it
 
-**Node 18 or newer.** Check first — an older one fails while building a native dependency
-and reports a `node-gyp` error that says nothing about the real problem:
-
-```bash
-node -v
-```
-
-If it is older (or `npx` is missing, which means Node is older than 8): `brew install node`,
-or use nvm.
+**Node 18 or newer** — `node -v`. An older one fails while building a native dependency
+and reports a `node-gyp` error that says nothing about the real problem.
 
 ```bash
 npm install
 npx playwright install chromium     # once, if you have never used Playwright here
-bash <plugin>/engine/run.sh checkout
+bash <plugin>/engine/run.sh checkout        # English
+bash <plugin>/engine/run.sh checkout es     # Spanish
 ```
 
 `<plugin>` is the installed marketplace copy of `plugins/e2e-video-doc/skills/e2e-video-doc`.
-The result lands in `videos/checkout.mp4` — about a minute, six frames, Spanish narration.
+The result lands in `videos/checkout_en.mp4` or `videos/checkout_es.mp4` — about a minute,
+six frames each.
 
-The engine needs `edge-tts`, `ffmpeg`, `ffprobe`, `jq` and `python3`:
-
-```bash
-for c in edge-tts ffmpeg ffprobe jq python3; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
-```
+The engine needs `edge-tts`, `ffmpeg`, `ffprobe`, `jq` and `python3`. To find out whether
+this machine has them, and what to run if it does not:
 
 ```bash
-brew install ffmpeg jq        # macOS
-sudo apt install ffmpeg jq    # Debian/Ubuntu
-pip install edge-tts          # both
+bash <plugin>/engine/check.sh
 ```
 
 To see just the screenshots, without narrating anything:
@@ -62,6 +54,19 @@ your code. This sample **imports them from the recipe directly**, so that a chan
 breaks either one fails here first. That is the point of it being in this repo — every bug
 found in those two files so far was found in somebody's private repository.
 
+## Two languages, and why the interface changes too
+
+`e2e-video-doc.json` declares `en` and `es`. Asking for Spanish does not swap the audio
+track over English screenshots — **it captures again**, with the application rendering in
+Spanish, because a screen in one language under a voice in another reads as a mistake
+rather than as a translation. Compare `tmp/video_screenshots/checkout_en` with
+`checkout_es`: the catalogue, the buttons, the number formatting and the order status are
+all different.
+
+The language reaches the walkthrough as a Playwright **project** (`--project={lang}`)
+rather than an environment-variable prefix, because the capture command runs through
+`cmd /c` on Windows, where `VAR=value command` is not a thing.
+
 ## What the walkthrough exercises
 
 - `highlight` — the red box, on a table row and then on the order total
@@ -69,6 +74,8 @@ found in those two files so far was found in somebody's private repository.
 - `apiPanel` — the POST drawn as a card, with `pickFields` keeping three keys and saying
   how many it left out
 - A real `201`, and a `400` the server will return if you want to film a rejection
+- `languages` in the config — one capture run per language, which nothing else in this
+  repository demonstrates
 
 ## If you are evaluating the plugin
 

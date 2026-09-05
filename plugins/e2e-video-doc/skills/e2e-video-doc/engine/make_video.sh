@@ -6,7 +6,8 @@
 # cares about is the contract — `NN_name.png` files in a directory, and a JSON with the
 # narration.
 #
-# Requires: edge-tts (pip), ffmpeg/ffprobe, jq, python3.
+# Requires: edge-tts (pip), ffmpeg/ffprobe, jq, python3. Check them with `bash check.sh`,
+#   which is the same preflight this runs and needs nothing set up first.
 #   On Windows these are not on the host. See make_videos.ps1 (capture on Windows,
 #   assemble in WSL).
 #
@@ -28,25 +29,10 @@ RATE="${RATE:-+0%}"
 AUDIO_DIR="$SCREENSHOTS_DIR/audio"
 SEGMENTS_DIR="$SCREENSHOTS_DIR/segments"
 
-# The hint leads with the package manager the reader actually has: being told to
-# `apt install` on a Mac is one more translation between them and a working command.
-case "$(uname -s)" in
-  Darwin) PKG="brew install" ;;
-  *)      PKG="apt install" ;;
-esac
-
-for cmd in edge-tts ffmpeg ffprobe jq python3; do
-  if ! command -v "$cmd" &>/dev/null; then
-    echo "Missing: $cmd"
-    case $cmd in
-      edge-tts) echo "  Install: pip install edge-tts" ;;
-      ffmpeg|ffprobe) echo "  Install: $PKG ffmpeg" ;;
-      jq)       echo "  Install: $PKG jq" ;;
-      python3)  echo "  Install: $PKG python3" ;;
-    esac
-    exit 1
-  fi
-done
+# The same preflight anyone can run on its own with `bash check.sh`, before there is a
+# flow to run. It checks the five tools by *running* them, not by locating them.
+ENGINE_DIR="$(cd "$(dirname "$0")" && pwd)"
+bash "$ENGINE_DIR/check.sh" --quiet
 
 [ -f "$NARRATION_FILE" ] || { echo "No such narration file: $NARRATION_FILE"; exit 1; }
 [ -d "$SCREENSHOTS_DIR" ] || { echo "No such screenshots directory: $SCREENSHOTS_DIR"; exit 1; }
@@ -64,6 +50,20 @@ echo "   Output:      $OUTPUT"
 # `$(dirname "$OUTPUT")`: the mp4 usually lands outside the screenshots directory —
 # see reference/gotchas.md, "the video cannot live in tmp/".
 mkdir -p "$AUDIO_DIR" "$SEGMENTS_DIR" "$(dirname "$OUTPUT")"
+
+# Not realpath: it is GNU coreutils and macOS does not ship it. Failing inside a command
+# substitution it also produced an empty string rather than an error, so the concat list
+# filled up with blank entries and ffmpeg complained about the list instead of the cause.
+abspath() {
+  case "$1" in
+    /*) printf '%s\n' "$1" ;;
+    *)  printf '%s/%s\n' "$(cd "$(dirname "$1")" && pwd -P)" "$(basename "$1")" ;;
+  esac
+}
+
+# Resolved once, here: ffmpeg's concat demuxer resolves paths against the list file rather
+# than the working directory, so everything written into it has to be absolute.
+SEGMENTS_DIR="$(abspath "$SEGMENTS_DIR")"
 
 ENTRIES=$(jq length "$NARRATION_FILE")
 CONCAT_FILE="$SEGMENTS_DIR/concat.txt"
@@ -92,8 +92,12 @@ for i in $(seq 0 $((ENTRIES - 1))); do
   # no file. Quiet on success, loud on failure.
   if ! edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" \
        --write-media "$AUDIO" 2>"$TMP_ERR"; then
-    echo "edge-tts failed on entry $IDX. It needs network access; the voice name must exist." >&2
-    sed 's/^/  /' "$TMP_ERR" >&2
+    echo "edge-tts failed on entry $IDX. Usual causes: a voice name that does not exist" >&2
+    echo "(list them with: edge-tts --list-voices | grep ${VOICE%%-*}); no network access;" >&2
+    echo "or an install pointing at a Python that is gone." >&2
+    # The last lines, not all of them: a Python traceback is thirty lines whose final one
+    # is the whole answer.
+    tail -5 "$TMP_ERR" | sed 's/^/  /' >&2
     exit 1
   fi
 
@@ -114,9 +118,7 @@ for i in $(seq 0 $((ENTRIES - 1))); do
       exit 1
     }
 
-  # realpath: SCREENSHOTS may arrive relative, and ffmpeg's concat resolves paths
-  # against the list file, not against the cwd.
-  echo "file '$(realpath "$SEGMENT")'" >> "$CONCAT_FILE"
+  echo "file '$SEGMENT'" >> "$CONCAT_FILE"
 done
 
 # Without this guard ffmpeg gets an empty list and returns its own error instead of

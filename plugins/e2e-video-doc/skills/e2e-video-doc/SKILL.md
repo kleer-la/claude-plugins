@@ -28,15 +28,23 @@ and its login helper — because it has to age with the project. That is the fea
 
 ## Before doing anything
 
-1. **Read [reference/gotchas.md](reference/gotchas.md).** It is short and every item was
+1. **Run `bash engine/check.sh`.** Five tools, checked by running them rather than
+   locating them. Do it now, not when the narration is written: it is the only failure
+   here that needs a human to install something, and it costs nothing to hit early. In a
+   devcontainer, run it in the container that will assemble.
+2. **Read [reference/gotchas.md](reference/gotchas.md).** It is short and every item was
    paid for once. Especially: where the MP4 ends up, and where the tools are installed on
    *this* machine.
-2. **Detect the stack** — do not ask what you can look up:
+3. **Detect the stack** — do not ask what you can look up:
    - `test/system/` with Capybara → [recipes/rails-capybara](recipes/rails-capybara/)
-   - `playwright.config.*` → [recipes/playwright-node](recipes/playwright-node/)
+   - `playwright.config.*` → [recipes/playwright-node](recipes/playwright-node/).
+     Confirm the project has **`@playwright/test`**, not just `playwright`: they are
+     different packages, and the recipe needs the test runner.
    - Anything else: use the Playwright recipe as the reference for what features the
-     capture helper needs, and write it in the project's stack.
-3. **Is there an `e2e-video-doc.json` at the root?** If not, create it — see
+     capture helper needs, and write it in the project's stack. One rule is not optional
+     when you do: **the highlight box is drawn as its own element on `document.body`**,
+     never as a mark on the element it frames. See step 4.
+4. **Is there an `e2e-video-doc.json` at the root?** If not, create it — see
    [reference/config.md](reference/config.md).
 
 ## Generating a video for an existing flow
@@ -56,18 +64,42 @@ any were.
 
 1. **Ask what the walkthrough has to show** — do not guess. What the user achieves, where
    it starts, where it ends.
-2. **Write the walkthrough** in the project's stack, copying the capture helper from the
-   matching recipe. Use the factories and helpers the project already has; do not seed
-   data by hand if there is a seed.
-3. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
+2. **Decide with the user where it will run.** Does the happy path spend money or leave
+   the building — an LLM call, a message, a payment — or depend on external state nobody
+   controls, like a live third-party session? Then filming it does too, once per language,
+   on every regeneration. Use the doubles the project already has for its own tests, on an
+   ephemeral database and its own port. This is not a technical question and it is not
+   yours to settle alone; taken late, it was the most expensive hour of a real session.
+3. **Write the walkthrough** in the project's stack, **copying** the capture helper from
+   the matching recipe — copy it, do not fork it. Anything this project needs and the
+   recipe does not have (a banner only this app shows, names in another language) wraps
+   the helper from outside; edits *inside* it have to be re-ported by hand on every
+   update, and a real fork missed a silent-failure fix for two releases exactly that way.
+   Where a fork already exists, `highlightOn`/`highlightOff` — `highlight_on`/
+   `highlight_off` in Ruby — are the parts that must be re-ported; the rest can stay.
+   Use the factories and helpers the project already has; do not seed data by hand if
+   there is a seed.
+4. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
    here is far cheaper than after the audio exists. Two failures pass the test and only
    show up in the image: a `highlight:` that framed the *first* match rather than the
-   right one, and a `scroll:` that did nothing because the page already fitted.
+   right one, and a `scroll:` that did nothing because the page already fitted. Both stop
+   being silent if you name the subject: `assert_in_frame:` / `assertInFrame` refuses to
+   photograph a screen where the thing the narration points at is out of frame or covered.
+
+   A third used to belong on that list and now depends on you: **a `highlight:` the
+   framework threw away by re-rendering the node before the shot** — Turbo streams, React
+   renders and DevExpress grid callbacks all replace a node with fresh markup that never
+   carried a mark. The recipes as shipped are safe, because the box is its own element on
+   `document.body`. Any helper you write by hand, or any fork of the recipe, has to keep
+   that property or the failure comes back, green test and empty photograph. There is a
+   test for it in both recipes — run it after every update:
+   `examples/sample-app/tests/highlight.spec.ts` (Playwright, in the plugin repo) and
+   `recipes/rails-capybara/highlight_regression_test.rb` (copy into `test/system/`).
    On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
-4. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
+5. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
    One entry per capture, in order.
-5. **Add the flow** to `e2e-video-doc.json`.
-6. **Generate the video and watch it.**
+6. **Add the flow** to `e2e-video-doc.json`.
+7. **Generate the video and watch it.**
 
 ## When the walkthrough breaks
 
@@ -79,11 +111,12 @@ bug, say so before patching the script to step around it.
 
 | | |
 |---|---|
+| `engine/check.sh` | Preflight: are the five tools here and do they run? Needs nothing set up; run it first. |
 | `engine/make_video.sh` | The engine. Screenshots + narration → MP4. Driven entirely by the environment. |
 | `engine/run.sh` | Runs one flow from `e2e-video-doc.json`. |
 | `engine/devcontainer.sh` | Resolves a Compose service to the container actually running it. Container names drift; this does not. |
 | `engine/make_videos.ps1` `.cmd` | Windows: capture on the host, assemble in WSL. |
 | `engine/generate_title_cards.sh` | Opening and closing title cards. |
 | `recipes/playwright-node/` | `capture.ts` (highlight, focus, scroll) and `apiPanel.ts`. |
-| `recipes/rails-capybara/` | `video_recording.rb`, same contract. |
+| `recipes/rails-capybara/` | `video_recording.rb`, same contract, and `highlight_regression_test.rb` to copy into a project that vendors it. |
 | `reference/` | [config](reference/config.md) · [narration](reference/narration.md) · [voices](reference/voices.md) · [gotchas](reference/gotchas.md) |

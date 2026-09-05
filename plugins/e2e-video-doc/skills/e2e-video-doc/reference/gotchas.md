@@ -3,6 +3,36 @@
 Every item here was paid for once, on a real project. They are written down so nobody
 pays for them twice.
 
+## The walkthrough really does what it shows
+
+A capture run is the app doing the thing, not a picture of it. If the happy path spends
+money or leaves the building — a call to an LLM, a WhatsApp or an email, a payment, a
+webhook — then filming it spends money and leaves the building too, once per language,
+every time the video is regenerated. And if it leans on external state nobody controls —
+a real WhatsApp session, a third-party sandbox that resets — the walkthrough will break
+for reasons that have nothing to do with the product it exists to watch.
+
+**Decide where the run happens before writing a line of capture, and decide it with the
+user.** A project with those effects usually already owns the doubles for them — a fake
+provider, a fake LLM, a sandbox key — because its own tests needed them; use those, with
+an ephemeral database and the app on a port of its own, and check nothing real moved
+(`docker ps` before and after). On a project running in "local production" mode this was
+the most expensive decision of the whole session, more than any technical problem, and it
+was expensive because it was taken late.
+
+Reaching for a real session token to go faster is not the shortcut it looks like: Claude
+Code's permission classifier blocks automated use of live credentials against a live API,
+even one the user signed by hand.
+
+## A login through an external provider is not a form
+
+Google Identity Services, Auth0, a corporate SSO: there is nothing on the page to fill in,
+and driving the provider from headless Chrome is fragile where it is not refused outright.
+Do not automate it. **Inject an already-authenticated session the way the project's own
+integration tests do it** — the JWT into `localStorage`, the signed cookie, the test-only
+sign-in helper. Where that precedent exists the login step costs minutes; where it does
+not, writing it is the first task, and it is worth having regardless of the video.
+
 ## The video cannot live in `tmp/`
 
 Every capture test starts with `rm -rf` on its own directory. If the MP4 ends up there,
@@ -15,12 +45,28 @@ the next run deletes it — or any full system-test run does. The config's `outp
 different one per machine. **Detect, do not assume.**
 
 ```bash
-for c in edge-tts ffmpeg ffprobe jq; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done
-docker exec <container> bash -lc 'for c in edge-tts ffmpeg ffprobe jq; do printf "%-10s %s\n" "$c" "$(command -v $c || echo MISSING)"; done'
+bash engine/check.sh
+docker exec <container> bash /path/to/engine/check.sh
 ```
 
-Run the engine wherever all four are present. If they are nowhere, say which tool is
-missing where instead of installing system packages on your own.
+Run the engine wherever all five pass. If they pass nowhere, say which tool is missing
+where instead of installing system packages on your own.
+
+`check.sh` exists precisely so this can be answered before any work is done. It used to be
+reachable only through `make_video.sh`, which needs a narration, a screenshots directory
+and an output path — so the check arrived an hour after the moment it was useful.
+
+**On PATH is not the same as working.** `edge-tts` is a Python entry point, and a Homebrew
+Python upgrade leaves it behind with a shebang naming an interpreter that no longer exists
+— `command -v` finds the file, running it says `bad interpreter`. Found on a Mac whose
+`edge-tts` pointed at a python3.7 that had been gone for a while. `check.sh` therefore
+*runs* each tool rather than merely locating it, and a hand-written `command -v` loop is
+the check we already know is not enough. `pipx install edge-tts` puts it in its own
+virtualenv and survives the next Python upgrade; `pip install` does not — and on recent
+Debian and Ubuntu it is refused outright (PEP 668, `externally-managed-environment`), so
+pipx is the first step rather than the alternative. Installing pipx itself is a `sudo apt`
+away, which needs a human at a terminal; `check.sh` says exactly that when pipx is missing
+too, instead of printing a command that cannot run.
 
 ## The container name is not stable
 
@@ -49,6 +95,14 @@ default there. Bash then fails on the engine's own shebang with `\r: command not
 which names neither the file nor the cause. The repo's `.gitattributes` pins `*.sh` to
 `eol=lf`, and `make_videos.ps1` pipes the script through `tr -d '\r'` on the way into WSL
 so clones that already exist keep working.
+
+**The copy you are reading may be older than the plugin.** `/plugin marketplace update`
+does not always leave the installed clone matching what is on GitHub, and the skill files
+give no sign of it: a project ported a fix from the repository while its own installed
+`capture.ts` still had the old mechanism in it, so an agent following the local skill
+would have rebuilt the bug it had just removed. Check before trusting a local copy —
+`.claude-plugin/plugin.json` carries the version, and `CHANGELOG.md` says what that
+version should contain. Re-adding the marketplace is the blunt fix.
 
 **`.gitattributes` only reaches a fresh clone.** Git will not rewrite a working-tree file
 whose blob did not change, so `/plugin marketplace update` leaves an existing clone's
@@ -162,16 +216,102 @@ landed on the wrong row, because inbound and outbound records were numbered in s
 sequences and both were "81". Only the PNG showed it. Make the selector identify one
 element, and check the frame.
 
+**A `highlight:` that matched could once still be gone by the time of the shot.** Both
+recipes used to mark the element itself — an attribute, plus a CSS rule for it — and a
+framework throws that mark away when it re-renders the node. Turbo replaces it with the
+server's HTML, React with the render output; neither ever carried the attribute. The loss
+was silent: the selector matched, `count()` passed, the test passed, and only the
+photograph had no box on it.
+
+Measured on a real Rails app and on the sample: **3411 red pixels before the re-render,
+0 after, with a green test both times.** The recipes now draw the box as their own element
+appended to `document.body`, outside whatever the app re-renders, and the same probe scores
+the same number before and after. Two consequences worth knowing:
+
+- The box is a photograph of one instant — it is positioned from the element's rect and
+  does not follow it afterwards. `capture` therefore draws it *after* scrolling, which is
+  the order it already used.
+- **It is placed in document coordinates, not viewport ones.** A `position: fixed` box is
+  placed against the window, and a full-page screenshot is not a window — it is a tall
+  image the browser stitches, and what happens to a fixed box in that image is a
+  browser-version question. Measured on the same page, same construction, both Playwrights:
+  on **1.62** a fixed ring lands correctly at the element (5,000-odd red pixels, no offset);
+  on **1.55** it all but disappears — **28** red pixels, and the remnant 12px below where
+  the ring should start. Not the failure anyone predicts, which is the point: nobody
+  reasons their way to "the box survives the stitch on one version and evaporates on
+  another". Drawn in document coordinates it scored 5,164 pixels at exactly the right place
+  on 1.55 as well.
+- Two details that go with that. `absolute` resolves against the nearest positioned
+  ancestor, and a body with `position: relative` is not the document origin: draw the box,
+  measure where it landed, shift it by the difference rather than assuming. And **clamp it
+  inside the document** — a ring drawn 5px past the right edge is 5px of new scrollable
+  area, so the page gains a horizontal scrollbar, a full-page image comes out wider, and
+  every frame after it is composed differently. Read `scrollWidth`/`scrollHeight` before
+  appending anything.
+- Staging this failure with `cloneNode(true)` proves nothing: a clone copies attributes, so
+  the old mark rides along and everything looks fine. The faithful stand-in is putting the
+  server's own markup back over the node (`this.outerHTML = <captured html>`).
+
 **A `scroll:` on a page that already fits is a no-op**, and returns a perfectly valid
 photograph of the top of the page. Nothing fails. If the narration says "further down",
 assert that `window.scrollY` actually moved.
 
-These two are why step 3 exists — *run only the capture and look at the PNGs* — and they
-are the two it catches that nothing else does.
+These are why step 3 exists — *run only the capture and look at the PNGs* — and they are
+what it catches that nothing else does: each of them leaves a green test and a wrong
+image.
 
 **`focus:` suits tall regions, `highlight:` suits wide ones.** Cropping a wide, short
 element — a table row — yields something like 1280x174, which the engine then pads into
 1920x1080 with enormous bands above and below.
+
+**In the Rails recipe the two do not combine.** Selenium photographs the element at its
+exact rect and the ring is drawn just outside it, so a capture asking for both comes back
+cropped with no box on it — measured, and equally true of the outline that preceded the
+overlay. Playwright's `focusPad` crop keeps the box, because it clips the viewport rather
+than the element. Pick one per capture on Rails.
+
+## The page is still moving when the shutter opens
+
+**Scrolling animates, and the capture does not wait for it.** Bootstrap 5 ships
+`@media (prefers-reduced-motion: no-preference) { :root { scroll-behavior: smooth } }`,
+and headless Chrome reports no-preference — so on a Bootstrap app *every* scroll is an
+animation, and whether the shot catches the page mid-flight is a race against `pause`.
+Measured on the sample: a plain `scrollIntoView({block: "center"})` read `scrollY` 0
+immediately and 190 six-tenths of a second later.
+
+The two recipes were not equally exposed, which is not something you would work out from
+first principles:
+
+- **Capybara/Selenium went through the page's own JS and animated.** The recipe now asks
+  for `behavior: "instant"`. Without it, and with `pause: 0`, the framing check below
+  fails — that is how the fix was verified.
+- **Playwright's `scrollIntoViewIfNeeded` is instant** regardless of the CSS: measured at
+  190 immediately and 190 later, on the same page. Nothing to fix there.
+
+**Turbo restores the scroll position asynchronously after a navigation**, so a scroll
+applied a moment too early is quietly undone and the photograph is of the top of the page.
+Paid for on a real project, which bought a blind `sleep 0.4` before every scroll. The
+recipes take the cheaper route: check that the subject is where it should be, and scroll
+again if it is not.
+
+**A pinned navbar hides the subject and nothing notices.** `scrollIntoViewIfNeeded` and
+`align: :top` both consider an element parked under a fixed bar to be in view, so the
+element is technically on screen and visually gone. Centring is the fix, and it is what
+both recipes do on the retry.
+
+## Say what the picture has to contain
+
+`assert_in_frame:` (Rails) and `assertInFrame` (Playwright) refuse to take a picture in
+which the subject is not whole in the viewport, or is covered by something. They ask the
+document what is actually painted at the middle of the element — `elementFromPoint` — so a
+cookie wall, a modal, or a sticky header is caught, not just a bad rectangle. The check
+runs twice: once before the box is drawn, where a failure buys one more centred scroll,
+and once immediately before the shutter, where it raises, because that is the moment the
+camera sees.
+
+Use it on the element the narration is pointing at. It is the difference between a
+walkthrough that fails when the screen changes and one that quietly photographs the wrong
+part of the page.
 
 ## Borrow fixture data, and give it back
 

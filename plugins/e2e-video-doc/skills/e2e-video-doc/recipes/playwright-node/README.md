@@ -3,6 +3,17 @@
 Copy `capture.ts` and `apiPanel.ts` into the project's helpers. They have no dependencies
 beyond `@playwright/test`.
 
+**`@playwright/test` is not `playwright`.** They are different npm packages, and a project
+can have the library without the test runner. Check before writing the first capture:
+
+```bash
+node -e "require.resolve('@playwright/test')" || npm install --save-dev @playwright/test
+```
+
+Skipping it fails late and points at the wrong thing: `npx playwright test` exists and
+starts, because the `playwright` binary is there, and the error names your
+`playwright.config.ts` rather than the missing package.
+
 ## `capture.ts`
 
 ```ts
@@ -28,8 +39,9 @@ test("placing an order", { tag: "@video" }, async ({ page }) => {
 | `highlight` | Red box over one or more selectors during the shot. Removed afterwards, so it does not leak into the next step. Throws if it does not match. |
 | `focus` / `focusPad` | Crops the image around a selector, with air. |
 | `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"` \| `"text:<substring>"`. |
-| `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. |
+| `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. Works with `highlight`: the box is drawn in document coordinates, so it frames the element wherever it sits in the tall image. |
 | `pauseMs` | Wait before the shot (default 400). |
+| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. |
 
 `dismissBanner(page, selector)` closes whatever your stack puts on top of the page — a
 component library's trial strip, a staging ribbon, a debug bar. Call it once in a
@@ -66,3 +78,15 @@ await capture("token_issued");
 **Labels are configurable.** The card says `request` / `response` by default; if the
 narration is in another language, pass `labels: { request: "pedido", response: "respuesta" }`
 so the card matches the voice.
+
+## After every update of the helper
+
+The plugin repository ships `examples/sample-app/tests/highlight.spec.ts`, which stages a
+re-render of the framed node inside `capture`'s own pause and counts the red pixels in the
+resulting PNGs. It exists because a fork of this recipe carried a silent failure for two
+releases: the box used to be a mark on the element, and any framework that re-renders that
+node took the box with it — green test, empty photograph.
+
+If you copied this recipe, copy that spec too and point it at a page of your own. If you
+*forked* the recipe, `highlightOn`/`highlightOff` are the parts that must be re-ported on
+every update, and that spec is how you find out whether you did.
