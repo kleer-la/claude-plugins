@@ -81,7 +81,7 @@ so the card matches the voice.
 
 ## After every update of the helper
 
-The plugin repository ships `examples/sample-app/tests/highlight.spec.ts`, which stages a
+The plugin ships `examples/sample-app/tests/highlight.spec.ts`, which stages a
 re-render of the framed node inside `capture`'s own pause and counts the red pixels in the
 resulting PNGs. It exists because a fork of this recipe carried a silent failure for two
 releases: the box used to be a mark on the element, and any framework that re-renders that

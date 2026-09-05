@@ -20,7 +20,7 @@ bash <plugin>/engine/run.sh checkout        # English
 bash <plugin>/engine/run.sh checkout es     # Spanish
 ```
 
-`<plugin>` is the installed marketplace copy of `plugins/e2e-video-doc/skills/e2e-video-doc`.
+`<plugin>` is the installed marketplace copy of `skills/e2e-video-doc` (two levels up from here).
 The result lands in `videos/checkout_en.mp4` or `videos/checkout_es.mp4` — about a minute,
 six frames each.
 

@@ -93,7 +93,7 @@ any were.
    `document.body`. Any helper you write by hand, or any fork of the recipe, has to keep
    that property or the failure comes back, green test and empty photograph. There is a
    test for it in both recipes — run it after every update:
-   `examples/sample-app/tests/highlight.spec.ts` (Playwright, in the plugin repo) and
+   `examples/sample-app/tests/highlight.spec.ts` (Playwright, at the plugin root) and
    `recipes/rails-capybara/highlight_regression_test.rb` (copy into `test/system/`).
    On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
 5. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).

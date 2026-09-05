@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   createCapture,
   resetDir,
-} from "../../../plugins/e2e-video-doc/skills/e2e-video-doc/recipes/playwright-node/capture";
+} from "../../../skills/e2e-video-doc/recipes/playwright-node/capture";
 import { frameDiff } from "./pixels";
 
 // Regression fixture for `assertInFrame`, not a video flow — nothing here is narrated.

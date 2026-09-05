@@ -11,7 +11,7 @@ changes**, because the walkthrough is a real end-to-end test.
 
 [![Watch the demo](https://img.youtube.com/vi/h2U_B-G8fZg/hqdefault.jpg)](https://youtu.be/h2U_B-G8fZg)
 
-One minute, generated from [`examples/sample-app`](../../examples/sample-app/) by the
+One minute, generated from [`examples/sample-app`](examples/sample-app/) by the
 plugin itself — [English](https://youtu.be/h2U_B-G8fZg) ·
 [Español](https://youtu.be/M0JQVx_tBEg).
 
@@ -129,7 +129,7 @@ That last row is the whole economics of it. A video recorded by hand is worth wh
 the day it was made and decays from there; this one costs its tokens once and then
 regenerates from a script for as long as the walkthrough keeps passing.
 
-If you are evaluating, start with [`examples/sample-app`](../../examples/sample-app/) — it
+If you are evaluating, start with [`examples/sample-app`](examples/sample-app/) — it
 is the ten-minute version and needs no project of your own.
 
 ## Where it has actually run
@@ -217,11 +217,15 @@ those four projects learned the expensive way.
 
 ```
 .claude-plugin/plugin.json
+CHANGELOG.md    # this plugin's versions — plugin.json says which one you have
 skills/e2e-video-doc/
   SKILL.md      # the entry point
   engine/       # the engine — depends on no project
   recipes/      # capture helpers per stack
   reference/    # config, narration, voices, and what already cost us
+examples/sample-app/
+                # the ten-minute demo, and the regression fixture for the
+                # Playwright recipe — its tests import the helper directly
 ```
 
 ## Reporting something

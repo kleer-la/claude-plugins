@@ -2,12 +2,12 @@ import { test } from "@playwright/test";
 import {
   createCapture,
   resetDir,
-} from "../../../plugins/e2e-video-doc/skills/e2e-video-doc/recipes/playwright-node/capture";
+} from "../../../skills/e2e-video-doc/recipes/playwright-node/capture";
 import {
   showApiCall,
   pickFields,
   postJson,
-} from "../../../plugins/e2e-video-doc/skills/e2e-video-doc/recipes/playwright-node/apiPanel";
+} from "../../../skills/e2e-video-doc/recipes/playwright-node/apiPanel";
 
 // Captures the walkthrough this sample demonstrates: browse, add to the cart, order, and
 // see the API call that made it happen.
