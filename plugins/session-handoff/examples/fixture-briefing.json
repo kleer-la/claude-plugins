@@ -1,0 +1,23 @@
+{
+  "title": "Fixture — engine test",
+  "audience": "the test runner",
+  "outcome": "Confirms the engine concatenates three short beats.",
+  "beats": [
+    {
+      "kind": "open",
+      "duration": 2,
+      "narration": "Esto es una prueba del motor. Tres frases cortas."
+    },
+    {
+      "kind": "change",
+      "duration": 2,
+      "path": "docs/canvas.md",
+      "narration": "El documento cambió. El briefing se ancla en el diff."
+    },
+    {
+      "kind": "where",
+      "duration": 2,
+      "narration": "El audio queda en la carpeta de handoffs."
+    }
+  ]
+}

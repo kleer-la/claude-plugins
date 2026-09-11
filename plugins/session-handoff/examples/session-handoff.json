@@ -1,0 +1,10 @@
+{
+  "defaults": {
+    "voice": "es-AR-ElenaNeural",
+    "rate": "+8%",
+    "output_dir": "handoffs",
+    "audience": "the rest of the team"
+  },
+  "paths": [],
+  "share": "ask"
+}

@@ -1,0 +1,40 @@
+{
+  "title": "Canvas de precios — sesión de Juan, 11 sep",
+  "audience": "el equipo del producto compartido",
+  "duration_target": 120,
+  "outcome": "Sacamos el tier Enterprise y dejamos abierta la pregunta del descuento anual.",
+  "artifact": {
+    "kind": "git",
+    "path": "docs/pricing.md",
+    "ref": "main"
+  },
+  "beats": [
+    {
+      "kind": "open",
+      "duration": 6,
+      "narration": "Hoy con el agente actualicé el canvas de precios. En una frase: el tier Enterprise ya no está, y el descuento anual sigue abierto."
+    },
+    {
+      "kind": "decision",
+      "duration": 10,
+      "rejected": "dejarlo como contact us",
+      "narration": "Decisión: sacamos Enterprise. Nadie lo pide y ensucia la tabla. La alternativa era dejarlo como contact us. La descartamos porque igual obliga a explicar un producto que no vendemos."
+    },
+    {
+      "kind": "change",
+      "duration": 10,
+      "path": "docs/pricing.md",
+      "narration": "En el documento quedó la tabla con Solo y Team. Team pasa a cuarenta y nueve. El párrafo de Enterprise se fue entero, no quedó una nota al pie."
+    },
+    {
+      "kind": "open-question",
+      "duration": 8,
+      "narration": "Sigue abierta la pregunta del descuento anual. No la cerramos a propósito. La dejo para ustedes en la próxima revisión del canvas."
+    },
+    {
+      "kind": "where",
+      "duration": 6,
+      "narration": "El cambio está en docs slash pricing punto md, en el commit de esta tarde. Si algo no cierra, empiecen por ese archivo, no por el chat."
+    }
+  ]
+}

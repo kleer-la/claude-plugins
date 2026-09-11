@@ -10,6 +10,12 @@
       "source": "./plugins/e2e-video-doc",
       "description": "Walks the application like a real user and produces a narrated video, screenshots and the detail of each API call. The walkthrough is an E2E test: when it breaks, the screen changed.",
       "version": "0.3.4"
+    },
+    {
+      "name": "session-handoff",
+      "source": "./plugins/session-handoff",
+      "description": "Turns a working session with an agent into a 3–4 minute briefing the rest of the team can listen to. The conversation is the source; the document diff is the ground truth.",
+      "version": "0.1.0"
     }
   ]
 }

@@ -20,7 +20,10 @@ for every project, or a project's `.claude/settings.json` for one:
   "extraKnownMarketplaces": {
     "kleer-la": { "source": { "source": "github", "repo": "kleer-la/claude-plugins" } }
   },
-  "enabledPlugins": { "e2e-video-doc@kleer-la": true }
+  "enabledPlugins": {
+    "e2e-video-doc@kleer-la": true,
+    "session-handoff@kleer-la": true
+  }
 }
 ```
 
@@ -36,6 +39,7 @@ Ubuntu and Debian.
 | Plugin | What it does | When to reach for it |
 |---|---|---|
 | **[e2e-video-doc](plugins/e2e-video-doc/)** | Films a real end-to-end test walking your app — sign in, enter data, navigate — and turns the screenshots into a narrated MP4, with each API call drawn as a card. | You need a demo or a user guide of a flow that already ships, and you do not want it quietly going stale: because the walkthrough is a test, a screen that moves breaks the run instead of the video. |
+| **[session-handoff](plugins/session-handoff/)** | Distills a working session with an agent into a 3–4 minute briefing the rest of the team can listen to. The conversation is the source; the document diff is the ground truth. | You and an agent just changed a shared document, and the people who were not there need to catch up without reading the transcript. |
 
 Each plugin documents itself: what it is built on, how to start, what it costs, where it
 has actually run and what it does not do all live in that plugin's own README. This table
