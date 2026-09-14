@@ -40,6 +40,9 @@ and its login helper — because it has to age with the project. That is the fea
    - `playwright.config.*` → [recipes/playwright-node](recipes/playwright-node/).
      Confirm the project has **`@playwright/test`**, not just `playwright`: they are
      different packages, and the recipe needs the test runner.
+   - A `.csproj` referencing `Microsoft.Playwright` →
+     [recipes/playwright-dotnet](recipes/playwright-dotnet/). Same helper, in C#; the
+     README says which three project settings are not optional.
    - Anything else: use the Playwright recipe as the reference for what features the
      capture helper needs, and write it in the project's stack. One rule is not optional
      when you do: **the highlight box is drawn as its own element on `document.body`**,
@@ -81,7 +84,8 @@ any were.
    the helper from outside; edits *inside* it have to be re-ported by hand on every
    update, and a real fork missed a silent-failure fix for two releases exactly that way.
    Where a fork already exists, `highlightOn`/`highlightOff` — `highlight_on`/
-   `highlight_off` in Ruby — are the parts that must be re-ported; the rest can stay.
+   `highlight_off` in Ruby, `HighlightOn`/`HighlightOff` in C# — are the parts that must
+   be re-ported; the rest can stay.
    Use the factories and helpers the project already has; do not seed data by hand if
    there is a seed.
 5. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
@@ -97,9 +101,10 @@ any were.
    carried a mark. The recipes as shipped are safe, because the box is its own element on
    `document.body`. Any helper you write by hand, or any fork of the recipe, has to keep
    that property or the failure comes back, green test and empty photograph. There is a
-   test for it in both recipes — run it after every update:
-   `examples/sample-app/tests/highlight.spec.ts` (Playwright, at the plugin root) and
-   `recipes/rails-capybara/highlight_regression_test.rb` (copy into `test/system/`).
+   test for it in every recipe — run it after every update:
+   `examples/sample-app/tests/highlight.spec.ts` (Playwright, at the plugin root),
+   `recipes/rails-capybara/highlight_regression_test.rb` (copy into `test/system/`) and
+   `recipes/playwright-dotnet/HighlightRegressionTest.cs` (copy next to the tests).
    On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
 6. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
    One entry per capture, in order.
@@ -123,5 +128,6 @@ bug, say so before patching the script to step around it.
 | `engine/make_videos.ps1` `.cmd` | Windows: capture on the host, assemble in WSL. |
 | `engine/generate_title_cards.sh` | Opening and closing title cards. |
 | `recipes/playwright-node/` | `capture.ts` (highlight, focus, scroll) and `apiPanel.ts`. |
+| `recipes/playwright-dotnet/` | `Capture.cs` and `ApiPanel.cs`, the same two in C# for `Microsoft.Playwright` (net48 and .NET 5+), and `HighlightRegressionTest.cs` to copy next to the project's tests. |
 | `recipes/rails-capybara/` | `video_recording.rb`, same contract, and `highlight_regression_test.rb` to copy into a project that vendors it. |
 | `reference/` | [config](reference/config.md) · [narration](reference/narration.md) · [voices](reference/voices.md) · [gotchas](reference/gotchas.md) |
