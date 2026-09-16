@@ -140,9 +140,20 @@ module VideoRecording
     case selector
     when /\Acss:(.+)\z/ then find(Regexp.last_match(1), match: :first, visible: :all)
     when /\Atext:(.+)\z/
-      find(:xpath, "//*[contains(text(), '#{Regexp.last_match(1)}')]", match: :first, visible: :all)
+      find(:xpath, "//*[contains(text(), #{xpath_literal(Regexp.last_match(1))})]", match: :first, visible: :all)
     else find(selector, match: :first, visible: :all)
     end
+  end
+
+  # A `text:` substring containing `'` broke the naive `'#{...}'` interpolation with
+  # invalid XPath — "What's new", "Don't show again" are exactly the strings this is for.
+  # XPath 1.0 has no escape character, so a literal containing both quote kinds has to be
+  # split and rejoined with `concat()`; containing only `'` just switches to `"..."`.
+  def xpath_literal(str)
+    return "'#{str}'" unless str.include?("'")
+    return %("#{str}") unless str.include?('"')
+
+    "concat(#{str.split("'", -1).map { |part| %('#{part}') }.join(%(, "'", ))})"
   end
 
   # `this`, not arguments[0]: Capybara's Element#execute_script applies the script with
