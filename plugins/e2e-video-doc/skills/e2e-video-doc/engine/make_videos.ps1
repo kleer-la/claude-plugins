@@ -69,6 +69,11 @@ $Voice     = if ($env:VOICE) { $env:VOICE }
              elseif ($Config.flows.$Flow.voice) { $Config.flows.$Flow.voice }
              elseif ($Config.defaults.voice) { $Config.defaults.voice }
              else { "en-US-JennyNeural" }
+$Rate      = if ($env:RATE) { $env:RATE }
+             elseif ($HasLangs -and $Languages.$LangCode.rate) { $Languages.$LangCode.rate }
+             elseif ($Config.flows.$Flow.rate) { $Config.flows.$Flow.rate }
+             elseif ($Config.defaults.rate) { $Config.defaults.rate }
+             else { "+0%" }
 $Label     = if ($LangCode) { "$Flow ($LangCode)" } else { $Flow }
 
 if (-not $AssembleOnly) {
@@ -84,6 +89,21 @@ if (-not $AssembleOnly) {
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     }
     finally { Pop-Location }
+}
+
+# Static title/closing cards, declared once and copied in rather than the capture step
+# doing its own copy. Named "00_<name>.png" so a narration entry naming it finds it
+# regardless of how many real captures precede or follow it — see reference/narration.md.
+$TitleAssets = $Config.flows.$Flow.titleAssets
+if (-not $TitleAssets) { $TitleAssets = $Config.defaults.titleAssets }
+if ($TitleAssets) {
+    if (-not (Test-Path $Shots)) { New-Item -ItemType Directory -Path $Shots | Out-Null }
+    foreach ($prop in $TitleAssets.PSObject.Properties) {
+        $assetName = $prop.Name
+        $assetSrc = Join-Path $Root ($prop.Value.Replace("{flow}", $Flow).Replace("{lang_suffix}", $LangSuffix).Replace("{lang}", $LangCode))
+        if (-not (Test-Path $assetSrc)) { throw "titleAssets.$assetName`: no such file: $assetSrc" }
+        Copy-Item $assetSrc (Join-Path $Shots "00_$assetName.png") -Force
+    }
 }
 
 function Convert-ToWslPath([string]$WinPath) {
@@ -124,7 +144,7 @@ Write-Host "> $Label - narrating and assembling in WSL ($Voice)"
 # engine's .sh files CRLF endings, and bash dies on its own shebang with
 # "\r: command not found". .gitattributes fixes this at the source for fresh clones;
 # this rescues the ones that already exist, and is a no-op once they are LF.
-wsl bash -lc "VOICE='$Voice' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash <(tr -d '\r' < '$wslScript')"
+wsl bash -lc "VOICE='$Voice' RATE='$Rate' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash <(tr -d '\r' < '$wslScript')"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host ""

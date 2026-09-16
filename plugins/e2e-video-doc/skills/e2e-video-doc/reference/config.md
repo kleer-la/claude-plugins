@@ -64,6 +64,8 @@ The declaration order matters: the first language listed is the default.
 | `narration` | The narration JSON for that flow. See [narration.md](narration.md). |
 | `output` | Where the MP4 goes. **Outside `tmp/`** — see [gotchas.md](gotchas.md). |
 | `voice` | See [voices.md](voices.md). A language's voice wins over the flow's, which wins over the default. `VOICE=` in the environment overrides all of them. |
+| `rate` | Speech rate passed to `edge-tts --rate`, e.g. `"+8%"` or `"-10%"`. Same precedence as `voice`: language wins over flow, which wins over the default; `RATE=` in the environment overrides all of them. Default `"+0%"`. |
+| `titleAssets` | Optional map of `name` → image file, relative to the repo root. Each is copied into the screenshots directory as `00_<name>.png` before assembling — a static opening or closing card that is a file, not something the capture step draws. Pair it with a narration entry naming it: `{ "name": "opening", ... }` — see [narration.md](narration.md), "Naming an entry instead of numbering it". |
 
 ## What `capture` gets from the runner
 
@@ -82,6 +84,12 @@ starts by emptying the directory:
 ```json
 "capture": "docker exec ... bin/rails test test/system/{flow}_video_test.rb && LANG_CODE={lang} bash scripts/title_cards.sh \"$SCREENSHOTS\""
 ```
+
+That is still the right tool when the frame is **generated** — `generate_title_cards.sh`
+drawing from `TITLE`/`SUB1`/…, or a rasterised PDF. When it is a **static image file**
+already sitting in the repo — `opening.png`, `closing.png` — use `titleAssets` instead of
+writing a copy command into `capture`: one line in the config, done once, instead of every
+project reinventing the same `cp`.
 
 These examples interpolate inline with `$VAR`, which is bash: on Windows the capture
 command goes through `cmd /c`, where the variables arrive but `$VAR` does not expand —

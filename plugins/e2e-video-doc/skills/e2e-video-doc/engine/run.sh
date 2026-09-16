@@ -91,6 +91,8 @@ NARRATION="$ROOT/$(field narration)"
 OUTPUT="$ROOT/$(field output)"
 VOICE="${VOICE:-$(jq -r --arg f "$FLOW" --arg l "$LANG_CODE" \
   '(.languages[$l].voice // .flows[$f].voice // .defaults.voice // "en-US-JennyNeural")' "$CONFIG")}"
+RATE="${RATE:-$(jq -r --arg f "$FLOW" --arg l "$LANG_CODE" \
+  '(.languages[$l].rate // .flows[$f].rate // .defaults.rate // "+0%")' "$CONFIG")}"
 
 LABEL="$FLOW${LANG_CODE:+ ($LANG_CODE)}"
 
@@ -106,6 +108,20 @@ if [ -z "$ASSEMBLE_ONLY" ]; then
       SCREENSHOTS="$SCREENSHOTS" && eval "$CAPTURE" )
 fi
 
+# Static title/closing cards, declared once and copied in rather than the capture step
+# doing its own copy. Named `00_<name>.png` so a narration entry naming it — see
+# reference/narration.md, "Naming an entry instead of numbering it" — finds it regardless
+# of how many real captures precede or follow it. Run for --assemble-only too: cheap,
+# and keeps a stale copy from a config edit from lingering.
+mkdir -p "$SCREENSHOTS"
+while IFS=$'\t' read -r ASSET_NAME ASSET_SRC; do
+  [ -n "$ASSET_NAME" ] || continue
+  SRC="$ROOT/$(subst "$ASSET_SRC")"
+  [ -f "$SRC" ] || { echo "titleAssets.$ASSET_NAME: no such file: $SRC" >&2; exit 1; }
+  cp "$SRC" "$SCREENSHOTS/00_${ASSET_NAME}.png"
+done < <(jq -r --arg f "$FLOW" \
+  '(.flows[$f].titleAssets // .defaults.titleAssets // {}) | to_entries[] | "\(.key)\t\(.value)"' "$CONFIG")
+
 echo "> $LABEL — narrating and assembling"
-NARRATION="$NARRATION" SCREENSHOTS="$SCREENSHOTS" OUTPUT="$OUTPUT" VOICE="$VOICE" \
+NARRATION="$NARRATION" SCREENSHOTS="$SCREENSHOTS" OUTPUT="$OUTPUT" VOICE="$VOICE" RATE="$RATE" \
   bash "$ENGINE_DIR/make_video.sh"
