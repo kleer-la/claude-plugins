@@ -20,6 +20,7 @@ An array, one object per screen, in video order.
 | Field | What it is |
 |---|---|
 | `screenshot` | File name inside the screenshots directory. |
+| `name` | Used when `screenshot` is absent: matches whichever `NN_<name>.png` is on disk, regardless of its ordinal. See below. |
 | `duration` | A **floor** in seconds, not an exact value. |
 | `narration` | The text that gets synthesised. |
 
@@ -36,6 +37,19 @@ incrementing; you only pass the name.
 
 The JSON order wins over the disk order, but keeping them aligned is what makes a diff of
 the JSON readable.
+
+## Naming an entry instead of numbering it
+
+`screenshot` pins an entry to an exact file name, ordinal included — inserting a capture
+earlier in the walkthrough renumbers every `NN_*.png` after it, and every `screenshot` key
+that named one. Use `"name": "total"` instead of `"screenshot": "03_total.png"` and the
+engine matches whichever `NN_total.png` is actually on disk. The JSON's array order still
+decides where it lands in the video; only the ordinal in the file name becomes free to
+shift. `screenshot` still wins outright when both are present.
+
+```json
+{ "name": "total", "duration": 6, "narration": "The total updates as they add items." }
+```
 
 ## When a screenshot is missing
 

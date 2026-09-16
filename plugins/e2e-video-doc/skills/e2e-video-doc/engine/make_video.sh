@@ -19,6 +19,7 @@
 #     bash make_video.sh
 
 set -euo pipefail
+shopt -s nullglob
 
 NARRATION_FILE="${NARRATION:?set NARRATION=<path to the narration json>}"
 SCREENSHOTS_DIR="${SCREENSHOTS:?set SCREENSHOTS=<directory of PNGs>}"
@@ -72,9 +73,30 @@ CONCAT_FILE="$SEGMENTS_DIR/concat.txt"
 MISSING=0
 for i in $(seq 0 $((ENTRIES - 1))); do
   IDX=$(printf "%02d" $((i + 1)))
-  SCREENSHOT=$(jq -r ".[$i].screenshot" "$NARRATION_FILE")
+  SCREENSHOT=$(jq -r ".[$i].screenshot // empty" "$NARRATION_FILE")
   DURATION=$(jq -r ".[$i].duration" "$NARRATION_FILE")
   NARRATION_TEXT=$(jq -r ".[$i].narration" "$NARRATION_FILE")
+
+  # `name` matches `NN_<name>.png` regardless of its ordinal, so inserting a frame
+  # earlier in the walkthrough touches one JSON entry instead of renumbering every file
+  # after it and every `screenshot` key that names one. `screenshot`, when given, still
+  # wins outright — this only fires when it is absent.
+  if [ -z "$SCREENSHOT" ]; then
+    NAME=$(jq -r ".[$i].name // empty" "$NARRATION_FILE")
+    if [ -z "$NAME" ]; then
+      echo "entry $i has neither \"screenshot\" nor \"name\"" >&2
+      exit 1
+    fi
+    MATCHES=("$SCREENSHOTS_DIR"/[0-9][0-9]_"$NAME".png)
+    if [ "${#MATCHES[@]}" -gt 1 ]; then
+      echo "\"name\": \"$NAME\" matches more than one screenshot: ${MATCHES[*]##*/}" >&2
+      exit 1
+    elif [ "${#MATCHES[@]}" -eq 1 ]; then
+      SCREENSHOT="$(basename "${MATCHES[0]}")"
+    else
+      SCREENSHOT="NN_${NAME}.png"
+    fi
+  fi
 
   IMG="$SCREENSHOTS_DIR/$SCREENSHOT"
   AUDIO="$AUDIO_DIR/${IDX}.mp3"
