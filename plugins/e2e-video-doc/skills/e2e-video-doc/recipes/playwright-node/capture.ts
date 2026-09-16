@@ -22,6 +22,46 @@ export async function dismissBanner(page: Page, selector: string): Promise<void>
   }
 }
 
+/**
+ * Opens a `<details>` element if it is not already open. The `open` attribute is present
+ * as `""` when open, which is falsy: `if (!(await el.getAttribute("open")))` reads that
+ * as closed and *closes* an already-open panel, and the next `check()` on what is now a
+ * hidden input waits out the whole test timeout. The attribute is `=== null` only when
+ * the panel is actually closed.
+ */
+export async function ensureOpen(page: Page, selector: string): Promise<void> {
+  const el = page.locator(selector).first();
+  if ((await el.getAttribute("open")) === null) {
+    await el.evaluate((node) => {
+      (node as HTMLDetailsElement).open = true;
+    });
+  }
+}
+
+/**
+ * Asserts the screen's own vocabulary: words the narration should be able to use, and
+ * words that should never reach a viewer (internal jargon, field names, HTTP verbs). The
+ * walkthrough is exactly where a copy regression shows, and the narration is already
+ * written against the same words.
+ *
+ * Reads `textContent`, not `innerText`: `innerText` omits collapsed `<details>` content,
+ * so a lint built on it passes or fails depending on which panel happens to be open at
+ * the moment — the same trap `ensureOpen` exists for.
+ */
+export async function assertVocabulary(
+  page: Page,
+  opts: { required?: string[]; forbidden?: string[]; scope?: string },
+): Promise<void> {
+  const root = opts.scope ? page.locator(opts.scope).first() : page.locator("body");
+  const text = (await root.evaluate((el) => el.textContent)) ?? "";
+  for (const word of opts.required ?? []) {
+    if (!text.includes(word)) throw new Error(`assertVocabulary: missing required word "${word}"`);
+  }
+  for (const word of opts.forbidden ?? []) {
+    if (text.includes(word)) throw new Error(`assertVocabulary: forbidden word leaked: "${word}"`);
+  }
+}
+
 type Scroll = "bottom" | "top" | number | `css:${string}` | `text:${string}`;
 
 /** Box drawn over whatever the narration is pointing at. Removed after the shot, so it
@@ -107,12 +147,29 @@ async function highlightOff(page: Page): Promise<void> {
  *  top or bottom of the frame, it has no box at all, or something is sitting on top of it
  *  — a sticky header, a modal, a cookie bar. The last is why this asks the document what
  *  is actually painted at the middle of the element rather than trusting the rectangle.
- *  The overlay drawn above has `pointer-events: none`, so elementFromPoint sees past it. */
-async function frameProblem(page: Page, selector: string): Promise<string | null> {
+ *  The overlay drawn above has `pointer-events: none`, so elementFromPoint sees past it.
+ *
+ *  `useText` measures the rendered text instead of the element's own box. A `<caption>`
+ *  on a table wider than the viewport has its whole text visible at the left while its
+ *  box — the table's width — runs past the right edge; same for any block inside an
+ *  `overflow-x: auto` wrapper. `getBoundingClientRect()` on the element answers "is the
+ *  box in frame", which is the wrong question when the box is not what the narration
+ *  points at. A `Range` over the element's contents answers "is the text in frame". */
+async function frameProblem(
+  page: Page,
+  selector: string,
+  useText = false,
+): Promise<string | null> {
   const loc = page.locator(selector).first();
   if (!(await loc.count())) return `did not match anything`;
-  return loc.evaluate((el) => {
-    const r = el.getBoundingClientRect();
+  return loc.evaluate((el, useText) => {
+    const r = useText
+      ? (() => {
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          return range.getBoundingClientRect();
+        })()
+      : el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0) return "has no box on the page";
     if (r.top < 0) return `starts ${Math.round(-r.top)}px above the frame`;
     if (r.bottom > window.innerHeight)
@@ -127,7 +184,7 @@ async function frameProblem(page: Page, selector: string): Promise<string | null
       return `is covered by <${over.tagName.toLowerCase()}${cls}>`;
     }
     return null;
-  });
+  }, useText);
 }
 
 export function createCapture(page: Page, dir: string) {
@@ -144,10 +201,17 @@ export function createCapture(page: Page, dir: string) {
       focus?: string;
       focusPad?: number;
       /** Refuse to take the picture unless this element is whole in the frame and
-       *  nothing is covering it. */
-      assertInFrame?: string;
+       *  nothing is covering it. A plain string checks the element's own box — wrong for
+       *  a block whose box is wider than its visible text (a `<caption>` on an overflowing
+       *  table, anything inside `overflow-x: auto`); pass `{ selector, text: true }` to
+       *  check the rendered text instead. */
+      assertInFrame?: string | { selector: string; text?: boolean };
     },
   ) {
+    const frame =
+      typeof opts?.assertInFrame === "string"
+        ? { selector: opts.assertInFrame, text: false }
+        : opts?.assertInFrame;
     const scroll = opts?.scroll;
     // `behavior: "instant"` on every branch: `window.scrollTo(0, y)` is the two-argument
     // form, which means `behavior: "auto"`, which resolves to the computed
@@ -169,22 +233,22 @@ export function createCapture(page: Page, dir: string) {
     }
     // Checked before the box is drawn, because scrolling afterwards would leave the box
     // behind at the old position — it is placed once and does not follow.
-    if (opts?.assertInFrame) {
-      let problem = await frameProblem(page, opts.assertInFrame);
+    if (frame) {
+      let problem = await frameProblem(page, frame.selector, frame.text);
       if (problem) {
         // One retry, centred rather than minimal. Two things it fixes: a framework that
         // restores scroll position asynchronously after a navigation, undoing a scroll
         // applied a moment too early; and an element parked under a sticky header, which
         // scrollIntoViewIfNeeded considers already in view and will not move.
         await page
-          .locator(opts.assertInFrame)
+          .locator(frame.selector)
           .first()
           .evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" }));
         await page.waitForTimeout(300);
-        problem = await frameProblem(page, opts.assertInFrame);
+        problem = await frameProblem(page, frame.selector, frame.text);
         if (problem)
           throw new Error(
-            `capture(${name}): ${opts.assertInFrame} ${problem}, and scrolling again did not fix it`,
+            `capture(${name}): ${frame.selector} ${problem}, and scrolling again did not fix it`,
           );
       }
     }
@@ -200,11 +264,11 @@ export function createCapture(page: Page, dir: string) {
     // Again, after the pause and immediately before the shutter, because this is what the
     // camera will see: a scroll can still be undone while the page settles, and that
     // produces a perfectly valid photograph of the wrong part of the page.
-    if (opts?.assertInFrame) {
-      const problem = await frameProblem(page, opts.assertInFrame);
+    if (frame) {
+      const problem = await frameProblem(page, frame.selector, frame.text);
       if (problem)
         throw new Error(
-          `capture(${name}): ${opts.assertInFrame} ${problem} at the moment of the shot`,
+          `capture(${name}): ${frame.selector} ${problem} at the moment of the shot`,
         );
     }
     step += 1;

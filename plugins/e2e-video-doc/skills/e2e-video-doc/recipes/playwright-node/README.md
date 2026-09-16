@@ -41,11 +41,22 @@ test("placing an order", { tag: "@video" }, async ({ page }) => {
 | `scroll` | `"top"` \| `"bottom"` \| pixel offset \| `"css:<selector>"` \| `"text:<substring>"`. |
 | `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. Works with `highlight`: the box is drawn in document coordinates, so it frames the element wherever it sits in the tall image. |
 | `pauseMs` | Wait before the shot (default 400). |
-| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. |
+| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. A plain string checks the element's own box; `{ selector, text: true }` checks the rendered text instead — needed for a `<caption>` or any block inside `overflow-x: auto`, where the box runs off the edge but the text is fully visible. |
 
 `dismissBanner(page, selector)` closes whatever your stack puts on top of the page — a
 component library's trial strip, a staging ribbon, a debug bar. Call it once in a
 `beforeEach`, not in every test.
+
+`ensureOpen(page, selector)` opens a `<details>` element if it is not already open — use
+it before capturing or scrolling to anything inside one. Its `open` attribute is `""`
+when open, which is falsy in JS; a homemade `!(await el.getAttribute("open"))` check
+closes an already-open panel instead of leaving it alone.
+
+`assertVocabulary(page, { required?, forbidden?, scope? })` is a copy-lint assertion: fail
+if the screen (or `scope`) is missing a required word, or leaking a forbidden one — field
+names, HTTP verbs, internal jargon that should not reach a viewer. Reads `textContent`,
+which sees inside closed `<details>` panels; `innerText` does not, and a lint built on it
+would pass or fail depending on which panel happened to be open.
 
 ## `apiPanel.ts`
 

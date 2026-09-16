@@ -173,6 +173,20 @@ Running several video specs at once takes twice as long *and* makes them fight o
 shared state: config flags each one turns on and off, seeded data, sessions. The
 orchestrator runs **only** the spec for the requested flow.
 
+## `<details>` has two traps
+
+**`innerText` omits collapsed content.** A copy assertion over the whole page
+(`not.toMatch(/bucket/)`) then passes or fails depending on which `<details>` happens to
+be open when the test runs. Read `textContent` instead — see `assertVocabulary` in the
+Playwright recipe.
+
+**The `open` attribute is present as `""`, which is falsy in JS.**
+`if (!(await el.getAttribute("open")))` reads an open panel as closed and *closes* it —
+and the next `check()` on what is now a hidden input waits out the whole test timeout (4
+minutes, once). The correct test is `=== null`. `ensureOpen(page, selector)` in the
+Playwright recipe does this; call it before capturing or scrolling to anything inside a
+`<details>`.
+
 ## What is not a screenshot
 
 A generated PDF does not photograph well in headless Chrome — the viewer does not render
@@ -312,6 +326,13 @@ camera sees.
 Use it on the element the narration is pointing at. It is the difference between a
 walkthrough that fails when the screen changes and one that quietly photographs the wrong
 part of the page.
+
+**The check measures the box, not the text — say so if that is wrong for your subject.**
+A `<caption>` on a table wider than the viewport has its whole text visible at the left,
+while the table's own box runs past the right edge; same for any block inside an
+`overflow-x: auto` wrapper. In the Playwright recipe, `{ selector, text: true }` checks
+the rendered text (a `Range` over the element's contents) instead of the element's own
+rectangle.
 
 ## Borrow fixture data, and give it back
 
