@@ -43,7 +43,7 @@ and its login helper — because it has to age with the project. That is the fea
    - Anything else: use the Playwright recipe as the reference for what features the
      capture helper needs, and write it in the project's stack. One rule is not optional
      when you do: **the highlight box is drawn as its own element on `document.body`**,
-     never as a mark on the element it frames. See step 4.
+     never as a mark on the element it frames. See step 5.
 4. **Is there an `e2e-video-doc.json` at the root?** If not, create it — see
    [reference/config.md](reference/config.md).
 
@@ -70,7 +70,12 @@ any were.
    on every regeneration. Use the doubles the project already has for its own tests, on an
    ephemeral database and its own port. This is not a technical question and it is not
    yours to settle alone; taken late, it was the most expensive hour of a real session.
-3. **Write the walkthrough** in the project's stack, **copying** the capture helper from
+3. **If the screen has its own inline help or a glossary, capture it open right after the
+   first frame — before touching any control.** The narration for every later frame can
+   then use the vocabulary that panel defines instead of introducing it piecemeal, and
+   comes out shorter for it. Write the narration for that frame first, once the rest of
+   the walkthrough is captured.
+4. **Write the walkthrough** in the project's stack, **copying** the capture helper from
    the matching recipe — copy it, do not fork it. Anything this project needs and the
    recipe does not have (a banner only this app shows, names in another language) wraps
    the helper from outside; edits *inside* it have to be re-ported by hand on every
@@ -79,7 +84,7 @@ any were.
    `highlight_off` in Ruby — are the parts that must be re-ported; the rest can stay.
    Use the factories and helpers the project already has; do not seed data by hand if
    there is a seed.
-4. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
+5. **Run only the capture** and look at the PNGs before narrating. Fixing the walkthrough
    here is far cheaper than after the audio exists. Two failures pass the test and only
    show up in the image: a `highlight:` that framed the *first* match rather than the
    right one, and a `scroll:` that did nothing because the page already fitted. Both stop
@@ -96,10 +101,10 @@ any were.
    `examples/sample-app/tests/highlight.spec.ts` (Playwright, at the plugin root) and
    `recipes/rails-capybara/highlight_regression_test.rb` (copy into `test/system/`).
    On Windows: `engine\make_videos.cmd <flow> -CaptureOnly`.
-5. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
+6. **Write the narration JSON** — see [reference/narration.md](reference/narration.md).
    One entry per capture, in order.
-6. **Add the flow** to `e2e-video-doc.json`.
-7. **Generate the video and watch it.**
+7. **Add the flow** to `e2e-video-doc.json`.
+8. **Generate the video and watch it.**
 
 ## When the walkthrough breaks
 

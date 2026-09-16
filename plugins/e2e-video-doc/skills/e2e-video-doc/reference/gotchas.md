@@ -256,7 +256,7 @@ the same number before and after. Two consequences worth knowing:
 photograph of the top of the page. Nothing fails. If the narration says "further down",
 assert that `window.scrollY` actually moved.
 
-These are why step 3 exists — *run only the capture and look at the PNGs* — and they are
+These are why step 5 exists — *run only the capture and look at the PNGs* — and they are
 what it catches that nothing else does: each of them leaves a green test and a wrong
 image.
 
@@ -324,6 +324,13 @@ has to **return first**. Without that, the second borrow takes the already-borro
 as if it were the original and leaves it stuck — it happened: a counter that should have
 gone back to its original value kept climbing instead.
 
+**Seed fixture timestamps in the application's own offset, not the database server's.** A
+seed script that calls `SYSDATETIMEOFFSET()` gets the SQL container's zone — UTC, usually —
+so every frame read "05/09/2026 15:16" while the clock on the wall said 12:16. The video
+plays wrong to anyone who knows what time it was actually recorded, and a reviewer will
+ask. Compute the offset in the seeding script, or push it into the query
+(`SWITCHOFFSET(SYSDATETIMEOFFSET(), '-03:00')`), so frames read as the user would read them.
+
 ## Clean the screen before the shot
 
 Things that dirty the video and are not the product: a component library's trial strip,
@@ -345,3 +352,36 @@ actionable error from the service underneath. The empty `catch` was a defect in 
 right: it discarded that message and replaced it with a useless one.
 
 When the generator breaks, **ask first whether the thing that is wrong is the product.**
+
+## A walkthrough that cannot live with the app
+
+Mechanically this always worked: the contract is `NN_name.png` plus a narration JSON, so
+nothing above the cut line needs the application's source. `run.sh` finds
+`e2e-video-doc.json` by searching upward from the cwd, and `capture` can reach the app over
+the network instead of through `docker exec`. One real case: application source in an SVN
+working copy on IIS/Windows, walkthrough in a separate git repo, driving the site over
+HTTPS, assembling in WSL.
+
+**What you keep:** a narrated artifact that regenerates, and drift detection — for whoever
+runs it.
+
+**What you lose is not a matter of degree, it is absent.** The skill's central claim is
+that the walkthrough ages with the project: when the screen changes, the video fails the
+way an E2E test fails, in front of the person who changed the screen. A colocated
+walkthrough that nobody runs is still wired to break in CI the day someone changes the
+screen. A detached one has no such wire at all — nothing forces it to run, so nothing
+forces the drift to surface. It also gains failure modes a colocated walkthrough does not
+have: the site is down, the port moved, the token rotated. That directly undermines "ask
+first whether the thing that is wrong is the product" — now "it broke" has three boring
+explanations ahead of the interesting one.
+
+**What to do instead:** run it on a schedule rather than on someone remembering to, and
+triage environment-first (site down, port moved, token rotated) before product-second —
+the reverse of the colocated case.
+
+**When it is still the right call:** an experiment, a spike, a repo you cannot write to.
+All legitimate, and all reasons to expect the walkthrough to move next to the app later.
+
+**Do not generalize this to "walkthroughs can live anywhere."** They can live anywhere
+mechanically, and moving one away from the app costs the property that makes this tool
+worth using — a workaround for a real constraint, not an equivalent option.

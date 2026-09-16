@@ -113,7 +113,7 @@ if ($CaptureOnly) {
     exit 0
 }
 
-# Checked here rather than up front: the narration is what assembling needs, and step 3
+# Checked here rather than up front: the narration is what assembling needs, and step 5
 # of the skill is to capture and look at the PNGs before writing it.
 if (-not (Test-Path $Narration)) {
     throw "No narration file: $Narration`nCapture first with -CaptureOnly, then write it."
