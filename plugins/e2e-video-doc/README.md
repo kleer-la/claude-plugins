@@ -91,8 +91,9 @@ assemble. See the Windows section of
 Ask Claude for a video of a flow and the skill drives it. What it does, in order:
 
 1. Detects your stack and copies the matching capture helper into your project —
-   [Rails/Capybara](skills/e2e-video-doc/recipes/rails-capybara/) or
-   [Playwright](skills/e2e-video-doc/recipes/playwright-node/).
+   [Rails/Capybara](skills/e2e-video-doc/recipes/rails-capybara/),
+   [Playwright](skills/e2e-video-doc/recipes/playwright-node/) or
+   [Playwright .NET](skills/e2e-video-doc/recipes/playwright-dotnet/).
 2. Settles with you where the walkthrough will run, before writing anything — see the
    first bullet of [what it does not do](#what-it-does-not-do).
 3. Writes the walkthrough with your factories, your login helper, your seeded data.
@@ -141,10 +142,11 @@ and it is deliberately not a longer list.
 |---|---|
 | Rails + Capybara + Selenium | Four projects, including multi-language and devcontainers |
 | Playwright + TypeScript | Three projects, including the API panel. One was installed cold by someone outside the team, on macOS, and produced a video without asking us anything; another got there too, but only after six questions — which app, which environment, whether to touch a real secret ([#9](https://github.com/kleer-la/claude-plugins/issues/9)) |
+| Playwright + C# (.NET) | One project, an ASP.NET MVC app with DevExpress grids: eight browser specs and six videos, compiled for .NET Framework 4.8 and .NET 10 from the same code, each producing the same captures as the TypeScript walkthroughs it replaced |
 | Linux | Every run |
 | Windows + WSL | One project, host capture and WSL assembly |
 | macOS | The sample app, end to end. The engine needed no changes; six fixes went into prerequisites and error messages |
-| Any other stack | The contract is `NN_name.png` + a narration JSON. The engine does not care what produced the PNGs — but no one has written a third recipe yet |
+| Any other stack | The contract is `NN_name.png` + a narration JSON. The engine does not care what produced the PNGs — but nobody has written a fourth recipe yet |
 
 ## What it does not do
 
@@ -182,7 +184,8 @@ edge-tts, and no model is involved.
 
 **My stack is neither Rails nor Playwright.** The engine does not know what produced the
 PNGs, so it works the same. What you write is the capture, in your stack, using the
-Playwright recipe as the reference for what it has to do.
+Playwright recipe as the reference for what it has to do. Playwright itself comes in Node
+and .NET, and there is a recipe for each.
 
 **Does test data end up in the video?** Whatever your walkthrough uses — which is why it is
 written against factories and seeded data, never production. `apiPanel`'s `trimValue`

@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.4.0
+
+A third recipe. It started as a fork — a project that had its walkthroughs in TypeScript
+next to a .NET product ported them to C# so the product's own toolchain would build them,
+and the fork header said what every fork says: "when the plugin updates, diff that file
+against this one". This is that file, moved to where the diffing happens once.
+
+### Added
+
+- **`recipes/playwright-dotnet/`**: `Capture.cs` and `ApiPanel.cs` for `Microsoft.Playwright`,
+  the Node recipe function for function, with the Node recipe's own comments so the pairs
+  diff side by side. One source compiles for .NET Framework 4.8 and .NET 5+;
+  `IsExternalInit.cs` is the one polyfill 4.8 needs, and the README names the three
+  project settings that are not optional (`LangVersion` is the one that fails with a
+  message naming the feature rather than the setting).
+
+- `HighlightRegressionTest.cs`, the third copy of the re-render test, self-contained: it
+  photographs a page it sets itself, so it needs no app and no sample.
+
+- **The port includes what the Node recipe gained for [#13]**: `EnsureOpen`,
+  `AssertVocabulary` and the text mode of `assertInFrame` (`new InFrame(selector, Text: true)`).
+  Verified on .NET Framework 4.8 and .NET 10 against pages of their own, each with a control
+  that shows the old behaviour failing: the naive `open` check reading an open panel as
+  closed, `InnerTextAsync` missing a word inside a closed `<details>`, and the box check
+  refusing a `<caption>` whose text is fully visible.
+
+### Documented
+
+- **A `float` does not survive the trip into the page.** `Microsoft.Playwright` serializes
+  a `float` argument as an empty object, and `BoundingBoxAsync` returns floats. Passed
+  as-is, the overlay's arithmetic goes NaN and the box is a 0x0 dot under a green test —
+  30 red pixels where 5,000 were due. Found by the regression test, which is the reason to
+  copy it. Every coordinate is cast to `double` before `EvaluateAsync`.
+
+- **A test filter that matches nothing is green.** `dotnet test --filter TestCategory=x`
+  runs zero tests and exits 0; the engine then reports every screenshot missing. Said in
+  the recipe README, for a capture that runs unattended.
+
+[#13]: https://github.com/kleer-la/claude-plugins/issues/13
+
 ## 0.3.4
 
 The overlay was right about *which* element to frame and wrong about the coordinate system
