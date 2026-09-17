@@ -76,11 +76,22 @@ public class CheckoutVideo
 | `scrollBy` | A pixel offset — the numeric form of `scroll`, its own parameter because C# has no `string \| number`. |
 | `fullPage` | Whole page. Does not coexist with `focus` — cropping means looking at the viewport. Works with `highlight`: the box is drawn in document coordinates, so it frames the element wherever it sits in the tall image. |
 | `pauseMs` | Wait before the shot (default 400). |
-| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. |
+| `assertInFrame` | Refuses to take the picture unless that element is whole in the viewport and nothing covers it. Scrolls once more, centred, and re-checks before giving up. Any Playwright selector, `text=…` included. A plain string checks the element's own box; `new InFrame(selector, Text: true)` checks the rendered text instead — needed for a `<caption>` or any block inside `overflow-x: auto`, where the box runs off the edge but the text is fully visible. |
 
 `Capture.DismissBanner(page, selector)` closes whatever your stack puts on top of the page
 — a component library's trial strip, a staging ribbon, a debug bar. Call it once after
 navigating, before the first capture, not in every test.
+
+`Capture.EnsureOpen(page, selector)` opens a `<details>` element if it is not already open —
+use it before capturing or scrolling to anything inside one. Its `open` attribute is `""`
+when open. In JS that is falsy; in C# the tempting `string.IsNullOrEmpty` check reads it the
+same wrong way, and closes an already-open panel instead of leaving it alone.
+
+`Capture.AssertVocabulary(page, required:, forbidden:, scope:)` is a copy-lint assertion:
+fail if the screen (or `scope`) is missing a required word, or leaking a forbidden one —
+field names, HTTP verbs, internal jargon that should not reach a viewer. Reads
+`textContent`, which sees inside closed `<details>` panels; `InnerTextAsync` does not, and a
+lint built on it would pass or fail depending on which panel happened to be open.
 
 ## `ApiPanel.cs`
 
@@ -121,6 +132,8 @@ the card matches the voice.
 
 - Options are named parameters, not an options object, and `scroll`'s numeric form is a
   separate parameter, `scrollBy`.
+- `assertInFrame: { selector, text: true }` is `assertInFrame: new InFrame(selector, Text: true)`;
+  a plain string still converts.
 - `expect: "reject"` is `Reject = true`.
 - `postJson` returns a typed `JsonResponse` instead of `{ status, body }`, because reading a
   property off an untyped body is a cast on every line in C#.

@@ -26,6 +26,15 @@ public readonly record struct Selectors(string[] Items)
 	public static implicit operator Selectors(string[] many) => new(many);
 }
 
+/// <summary>
+/// What `assertInFrame` checks. A plain string checks the element's own box; `Text: true`
+/// checks the rendered text instead. The C# shape of `string | { selector, text }`.
+/// </summary>
+public readonly record struct InFrame(string Selector, bool Text = false)
+{
+	public static implicit operator InFrame(string selector) => new(selector);
+}
+
 public sealed class Capture
 {
 	readonly IPage _page;
@@ -61,6 +70,52 @@ public sealed class Capture
 		catch (Exception)
 		{
 			// banner absent
+		}
+	}
+
+	/// <summary>
+	/// Opens a `&lt;details&gt;` element if it is not already open. The `open` attribute is present
+	/// as `""` when open, which is falsy: `if (!(await el.getAttribute("open")))` reads that
+	/// as closed and *closes* an already-open panel, and the next `check()` on what is now a
+	/// hidden input waits out the whole test timeout. The attribute is `=== null` only when
+	/// the panel is actually closed.
+	/// </summary>
+	public static async Task EnsureOpen(IPage page, string selector)
+	{
+		var el = page.Locator(selector).First;
+		// In C# the trap reads differently -- GetAttributeAsync returns "" for an open panel,
+		// and `string.IsNullOrEmpty` is the tempting check -- but it is the same trap.
+		if (await el.GetAttributeAsync("open") is null)
+			await el.EvaluateAsync("(node) => { node.open = true; }");
+	}
+
+	/// <summary>
+	/// Asserts the screen's own vocabulary: words the narration should be able to use, and
+	/// words that should never reach a viewer (internal jargon, field names, HTTP verbs). The
+	/// walkthrough is exactly where a copy regression shows, and the narration is already
+	/// written against the same words.
+	///
+	/// Reads `textContent`, not `innerText`: `innerText` omits collapsed `&lt;details&gt;` content,
+	/// so a lint built on it passes or fails depending on which panel happens to be open at
+	/// the moment — the same trap `EnsureOpen` exists for.
+	/// </summary>
+	public static async Task AssertVocabulary(
+		IPage page,
+		IEnumerable<string>? required = null,
+		IEnumerable<string>? forbidden = null,
+		string? scope = null)
+	{
+		var root = scope is not null ? page.Locator(scope).First : page.Locator("body");
+		var text = await root.EvaluateAsync<string?>("(el) => el.textContent") ?? "";
+		foreach (var word in required ?? Array.Empty<string>())
+		{
+			if (!text.Contains(word))
+				throw new InvalidOperationException($"assertVocabulary: missing required word \"{word}\"");
+		}
+		foreach (var word in forbidden ?? Array.Empty<string>())
+		{
+			if (text.Contains(word))
+				throw new InvalidOperationException($"assertVocabulary: forbidden word leaked: \"{word}\"");
 		}
 	}
 
@@ -151,8 +206,14 @@ public sealed class Capture
 		_page.EvaluateAsync("attr => { document.querySelectorAll(`[${attr}]`).forEach((el) => el.remove()); }", OverlayAttr);
 
 	const string FrameProblemJs = """
-		(el) => {
-		  const r = el.getBoundingClientRect();
+		(el, useText) => {
+		  const r = useText
+		    ? (() => {
+		        const range = document.createRange();
+		        range.selectNodeContents(el);
+		        return range.getBoundingClientRect();
+		      })()
+		    : el.getBoundingClientRect();
 		  if (r.width === 0 || r.height === 0) return "has no box on the page";
 		  if (r.top < 0) return `starts ${Math.round(-r.top)}px above the frame`;
 		  if (r.bottom > window.innerHeight)
@@ -176,12 +237,19 @@ public sealed class Capture
 	// — a sticky header, a modal, a cookie bar. The last is why this asks the document what
 	// is actually painted at the middle of the element rather than trusting the rectangle.
 	// The overlay drawn above has `pointer-events: none`, so elementFromPoint sees past it.
-	async Task<string?> FrameProblem(string selector)
+	//
+	// `useText` measures the rendered text instead of the element's own box. A `<caption>`
+	// on a table wider than the viewport has its whole text visible at the left while its
+	// box — the table's width — runs past the right edge; same for any block inside an
+	// `overflow-x: auto` wrapper. `getBoundingClientRect()` on the element answers "is the
+	// box in frame", which is the wrong question when the box is not what the narration
+	// points at. A `Range` over the element's contents answers "is the text in frame".
+	async Task<string?> FrameProblem(string selector, bool useText = false)
 	{
 		var loc = _page.Locator(selector).First;
 		if (await loc.CountAsync() == 0)
 			return "did not match anything";
-		var result = await loc.EvaluateAsync<JsonElement?>(FrameProblemJs);
+		var result = await loc.EvaluateAsync<JsonElement?>(FrameProblemJs, useText);
 		return result is { ValueKind: JsonValueKind.String } s ? s.GetString() : null;
 	}
 
@@ -195,7 +263,10 @@ public sealed class Capture
 	/// <param name="highlight">Selectors to frame in red during the shot.</param>
 	/// <param name="focus">Crops the image around this selector, with `focusPad` px of air.</param>
 	/// <param name="assertInFrame">Refuse to take the picture unless this element is whole in the
-	/// frame and nothing is covering it.</param>
+	/// frame and nothing is covering it. A plain string checks the element's own box — wrong for
+	/// a block whose box is wider than its visible text (a `&lt;caption&gt;` on an overflowing
+	/// table, anything inside `overflow-x: auto`); pass `new InFrame(selector, Text: true)` to
+	/// check the rendered text instead.</param>
 	public async Task<string> Take(
 		string name,
 		int pauseMs = 400,
@@ -205,8 +276,9 @@ public sealed class Capture
 		Selectors? highlight = null,
 		string? focus = null,
 		int focusPad = 40,
-		string? assertInFrame = null)
+		InFrame? assertInFrame = null)
 	{
+		var frame = assertInFrame;
 		// `behavior: "instant"` on every branch: `window.scrollTo(0, y)` is the two-argument
 		// form, which means `behavior: "auto"`, which resolves to the computed
 		// `scroll-behavior` — smooth on any Bootstrap app, and then the shot is a race
@@ -227,22 +299,22 @@ public sealed class Capture
 
 		// Checked before the box is drawn, because scrolling afterwards would leave the box
 		// behind at the old position — it is placed once and does not follow.
-		if (assertInFrame is not null)
+		if (frame is { } f)
 		{
-			var problem = await FrameProblem(assertInFrame);
+			var problem = await FrameProblem(f.Selector, f.Text);
 			if (problem is not null)
 			{
 				// One retry, centred rather than minimal. Two things it fixes: a framework that
 				// restores scroll position asynchronously after a navigation, undoing a scroll
 				// applied a moment too early; and an element parked under a sticky header, which
 				// scrollIntoViewIfNeeded considers already in view and will not move.
-				await _page.Locator(assertInFrame).First
+				await _page.Locator(f.Selector).First
 					.EvaluateAsync("(el) => el.scrollIntoView({ block: 'center', behavior: 'instant' })");
 				await _page.WaitForTimeoutAsync(300);
-				problem = await FrameProblem(assertInFrame);
+				problem = await FrameProblem(f.Selector, f.Text);
 				if (problem is not null)
 					throw new InvalidOperationException(
-						$"capture({name}): {assertInFrame} {problem}, and scrolling again did not fix it");
+						$"capture({name}): {f.Selector} {problem}, and scrolling again did not fix it");
 			}
 		}
 
@@ -254,12 +326,12 @@ public sealed class Capture
 		// Again, after the pause and immediately before the shutter, because this is what the
 		// camera will see: a scroll can still be undone while the page settles, and that
 		// produces a perfectly valid photograph of the wrong part of the page.
-		if (assertInFrame is not null)
+		if (frame is { } g)
 		{
-			var problem = await FrameProblem(assertInFrame);
+			var problem = await FrameProblem(g.Selector, g.Text);
 			if (problem is not null)
 				throw new InvalidOperationException(
-					$"capture({name}): {assertInFrame} {problem} at the moment of the shot");
+					$"capture({name}): {g.Selector} {problem} at the moment of the shot");
 		}
 		_step += 1;
 		var filename = $"{_step:00}_{name}.png";

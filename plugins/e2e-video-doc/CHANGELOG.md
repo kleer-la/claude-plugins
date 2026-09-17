@@ -19,6 +19,13 @@ against this one". This is that file, moved to where the diffing happens once.
 - `HighlightRegressionTest.cs`, the third copy of the re-render test, self-contained: it
   photographs a page it sets itself, so it needs no app and no sample.
 
+- **The port includes what the Node recipe gained for [#13]**: `EnsureOpen`,
+  `AssertVocabulary` and the text mode of `assertInFrame` (`new InFrame(selector, Text: true)`).
+  Verified on .NET Framework 4.8 and .NET 10 against pages of their own, each with a control
+  that shows the old behaviour failing: the naive `open` check reading an open panel as
+  closed, `InnerTextAsync` missing a word inside a closed `<details>`, and the box check
+  refusing a `<caption>` whose text is fully visible.
+
 ### Documented
 
 - **A `float` does not survive the trip into the page.** `Microsoft.Playwright` serializes
@@ -30,6 +37,8 @@ against this one". This is that file, moved to where the diffing happens once.
 - **A test filter that matches nothing is green.** `dotnet test --filter TestCategory=x`
   runs zero tests and exits 0; the engine then reports every screenshot missing. Said in
   the recipe README, for a capture that runs unattended.
+
+[#13]: https://github.com/kleer-la/claude-plugins/issues/13
 
 ## 0.3.4
 
