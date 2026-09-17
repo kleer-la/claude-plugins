@@ -87,14 +87,57 @@ repo, the project name does not:
 
 ## Windows
 
-The host has none of the three, but WSL Ubuntu does. **The engine does not need a
-rewrite**: `make_videos.ps1` captures on Windows and crosses into WSL to assemble.
+The host has none of the three tools. `make_videos.ps1` captures on Windows and then
+assembles with one of **two engines**, chosen at the one call site where it hands off —
+after it has resolved voice, rate, language and `titleAssets`, so both engines get the same
+values through the same environment variables:
+
+- **`dotnet`** (`engine/dotnet/`): `make_video.sh` in C#. Needs the .NET 10 SDK, which
+  Visual Studio 2026 installs, and nothing else: the voice comes from the service `edge-tts`
+  uses, and ffmpeg 6.1 is fetched on first use (about 250 MB, to
+  `%LOCALAPPDATA%\e2e-video-doc\ffmpeg`, shared by every project). Measured against the bash
+  engine on the same flow — rate `+15%`, a title asset, every entry matched by `name` — both
+  came out 95.68 s, 1920×1080 H.264 at 25 fps, AAC at 94 kb/s, 1 KB apart.
+- **`wsl`**: `make_video.sh` across the bridge into WSL, where `edge-tts`, `ffmpeg` and `jq`
+  live.
+
+`-Engine auto`, the default, takes `dotnet` when a .NET 10+ SDK is installed and `wsl`
+otherwise; `-Engine dotnet` or `-Engine wsl` forces one.
+
+**The .NET engine is `net10.0` only.** The read-aloud service answers 403 to a WebSocket
+handshake without a `User-Agent`, and `ClientWebSocket` on .NET Framework refuses to set that
+header — it is a restricted header there, and `SetRequestHeader` throws `ArgumentException`.
+Checked both ways: on `net10.0` the synthesis works, and removing only that header gives the
+same 403.
+
+**Keep a `net10.0`-only project out of a multi-target solution.** When a project targeting
+`net48;net10.0` shares a `.sln` with one that has no `net48`, `dotnet test -f net48` on the
+solution fails for all of them with `NETSDK1005: Assets file … doesn't have a target for
+'net48'`. The engine is run by path, `dotnet run --project`; a project that vendors something
+similar next to its tests should do the same.
+
+**The voice service is not an official API.** `edge-tts` carries the same risk; the difference
+is that in C# the fix is an edit to `engine/dotnet/Voice.cs` rather than a `pipx upgrade`. It is
+a port of `edge-tts` 7.2.8 with the constant names kept, so the fix is to diff
+`communicate.py`, `drm.py` and `constants.py`, from the `edge-tts` release that handled the
+change, against it. A 403 on one machine only is more often the clock: the token changes every
+five minutes, and the client corrects a skew once, from the server's date, before giving up.
+
+**A machine with only Visual Studio has no nuget.org package source** — just the offline one —
+and `dotnet run` then fails to restore FFMpegCore with an error that names the package, not the
+source. `engine/dotnet/nuget.config` adds nuget.org for that project only.
 
 **A clone on Windows has CRLF line endings**, because `core.autocrlf=true` is the
 default there. Bash then fails on the engine's own shebang with `\r: command not found`,
 which names neither the file nor the cause. The repo's `.gitattributes` pins `*.sh` to
 `eol=lf`, and `make_videos.ps1` pipes the script through `tr -d '\r'` on the way into WSL
 so clones that already exist keep working.
+
+**Under `bash <(...)`, `$0` is `/dev/fd/63`.** That is how the `tr` above feeds the script to
+bash, and `make_video.sh` found `check.sh` next to itself through `$0` — so from the day the
+preflight was added (`9fe924d`) every Windows run through WSL stopped at
+`bash: /dev/fd/check.sh: No such file or directory`, before a single frame. `make_videos.ps1`
+now passes `ENGINE_DIR`, and the script uses it when it is set.
 
 **The copy you are reading may be older than the plugin.** `/plugin marketplace update`
 does not always leave the installed clone matching what is on GitHub, and the skill files

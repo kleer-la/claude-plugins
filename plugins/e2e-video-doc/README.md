@@ -82,8 +82,9 @@ preflight also checks them by **running** them rather than locating them, which 
 same question — a `pip`-installed `edge-tts` whose Python was later upgraded is still
 found by `command -v` and still cannot run.
 
-On Windows the five live in WSL: the plugin captures on the host and crosses the bridge to
-assemble. See the Windows section of
+On Windows none of the five is needed on the host: the plugin captures there and assembles
+with its .NET engine, which needs only the .NET 10 SDK that Visual Studio 2026 installs. Without
+that SDK it crosses into WSL, where the five live. See the Windows section of
 [gotchas](skills/e2e-video-doc/reference/gotchas.md).
 
 ## Getting started
@@ -145,6 +146,7 @@ and it is deliberately not a longer list.
 | Playwright + C# (.NET) | One project, an ASP.NET MVC app with DevExpress grids: eight browser specs and six videos, compiled for .NET Framework 4.8 and .NET 10 from the same code, each producing the same captures as the TypeScript walkthroughs it replaced |
 | Linux | Every run |
 | Windows + WSL | One project, host capture and WSL assembly |
+| Windows + .NET | One project, host capture and .NET assembly with no WSL: six flows regenerated end to end, and the same flow through both engines came out equal to the hundredth of a second |
 | macOS | The sample app, end to end. The engine needed no changes; six fixes went into prerequisites and error messages |
 | Any other stack | The contract is `NN_name.png` + a narration JSON. The engine does not care what produced the PNGs — but nobody has written a fourth recipe yet |
 

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.3.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\E2EVideoDoc.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NameParityTest runs the real script's block, so the script travels with the tests. -->
+    <None Include="resolve_names.sh" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\make_video.sh" Link="make_video.sh" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
