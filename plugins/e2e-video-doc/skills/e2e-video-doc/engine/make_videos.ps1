@@ -1,20 +1,29 @@
-# Windows: capture on the host (against the local site), assemble the video in WSL.
+# Windows: capture on the host (against the local site), then assemble the video with one of
+# two engines:
 #
-# `edge-tts`, `ffmpeg` and `jq` are not on a typical Windows host, but they are in WSL
-# Ubuntu. Rather than rewrite the engine, it is called across the bridge.
-# See reference/gotchas.md, "Windows".
+#   dotnet  engine\dotnet, make_video.sh in C#. Needs the .NET 10 SDK (Visual Studio 2026 has
+#           it) and nothing else: the voice comes from the same service edge-tts uses, and
+#           ffmpeg is fetched on first use.
+#   wsl     engine\make_video.sh, across the bridge into WSL, where edge-tts, ffmpeg and jq
+#           live.
+#
+# Everything below resolves voice, rate, language and titleAssets once, and both engines get
+# the same values through the same environment variables. See reference/gotchas.md, "Windows".
 #
 #   .\make_videos.ps1 -Flow checkout
 #   .\make_videos.ps1 -Flow checkout -Lang en
 #   .\make_videos.ps1 -Flow checkout -CaptureOnly   # screenshots, no narration yet
 #   .\make_videos.ps1 -Flow checkout -AssembleOnly  # from the screenshots already there
+#   .\make_videos.ps1 -Flow checkout -Engine wsl    # force one engine (default: auto)
 #   $env:VOICE = "en-GB-SoniaNeural"; .\make_videos.ps1 -Flow checkout
 
 param(
     [Parameter(Mandatory = $true)][string]$Flow,
     [string]$Lang,
     [switch]$AssembleOnly,
-    [switch]$CaptureOnly
+    [switch]$CaptureOnly,
+    # auto: dotnet when a .NET 10+ SDK is installed, wsl otherwise.
+    [ValidateSet("auto", "dotnet", "wsl")][string]$Engine = "auto"
 )
 
 if ($AssembleOnly -and $CaptureOnly) { throw "-AssembleOnly and -CaptureOnly are opposites; pick one." }
@@ -139,13 +148,42 @@ if (-not (Test-Path $Narration)) {
     throw "No narration file: $Narration`nCapture first with -CaptureOnly, then write it."
 }
 
-Write-Host "> $Label - narrating and assembling in WSL ($Voice)"
-# `tr -d '\r'`: a clone made with core.autocrlf=true - the Windows default - gives the
-# engine's .sh files CRLF endings, and bash dies on its own shebang with
-# "\r: command not found". .gitattributes fixes this at the source for fresh clones;
-# this rescues the ones that already exist, and is a no-op once they are LF.
-wsl bash -lc "VOICE='$Voice' RATE='$Rate' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash <(tr -d '\r' < '$wslScript')"
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($Engine -eq "auto") {
+    # A .NET 10 SDK is the whole requirement of the dotnet engine. Without it, WSL is the
+    # engine this script has always used.
+    $sdks = @()
+    if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+        $sdks = @(& dotnet --list-sdks 2>$null | ForEach-Object { if ($_ -match '^(\d+)\.') { [int]$Matches[1] } })
+    }
+    $Engine = if (($sdks | Where-Object { $_ -ge 10 }).Count -gt 0) { "dotnet" } else { "wsl" }
+}
+
+if ($Engine -eq "dotnet") {
+    Write-Host "> $Label - narrating and assembling with the .NET engine ($Voice)"
+    # The same environment make_video.sh reads. Set for the child and put back afterwards,
+    # so a run from an interactive PowerShell does not leave them behind in the session.
+    $vars = @{ VOICE = $Voice; RATE = $Rate; NARRATION = $Narration; SCREENSHOTS = $Shots; OUTPUT = $Output }
+    $saved = @{}
+    foreach ($k in $vars.Keys) { $saved[$k] = [Environment]::GetEnvironmentVariable($k); [Environment]::SetEnvironmentVariable($k, $vars[$k]) }
+    try {
+        # `dotnet run` builds the engine the first time and reuses the build after that.
+        & dotnet run --project (Join-Path $EngineDir "dotnet\E2EVideoDoc.Engine.csproj") -c Release -v q
+        $code = $LASTEXITCODE
+    }
+    finally {
+        foreach ($k in $vars.Keys) { [Environment]::SetEnvironmentVariable($k, $saved[$k]) }
+    }
+    if ($code -ne 0) { exit $code }
+}
+else {
+    Write-Host "> $Label - narrating and assembling in WSL ($Voice)"
+    # `tr -d '\r'`: a clone made with core.autocrlf=true - the Windows default - gives the
+    # engine's .sh files CRLF endings, and bash dies on its own shebang with
+    # "\r: command not found". .gitattributes fixes this at the source for fresh clones;
+    # this rescues the ones that already exist, and is a no-op once they are LF.
+    wsl bash -lc "VOICE='$Voice' RATE='$Rate' NARRATION='$wslNarration' SCREENSHOTS='$wslShots' OUTPUT='$wslOutput' bash <(tr -d '\r' < '$wslScript')"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 
 Write-Host ""
 Write-Host "OK: $Output"
