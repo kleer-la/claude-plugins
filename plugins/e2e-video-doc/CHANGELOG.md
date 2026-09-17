@@ -1,5 +1,58 @@
 # Changelog
 
+## 0.5.0
+
+Windows no longer needs WSL to assemble a video ([#16]). A team that is otherwise all Visual
+Studio was installing WSL, `edge-tts`, `ffmpeg` and `jq` for one step; now it installs nothing.
+
+### Added
+
+- **`engine/dotnet/`: the engine in C#.** `make_video.sh`'s loop — speak each entry, measure the
+  audio, build the segment, concatenate — with the script's own ffmpeg arguments, reading the
+  same environment variables. The voice comes from the read-aloud service `edge-tts` uses,
+  through a port of `edge-tts` 7.2.8 that keeps its constant names so the two diff; ffmpeg 6.1
+  is pinned and fetched on first use. `net10.0` only, and run by path rather than from a
+  solution; the gotchas say why for both.
+
+- **`make_videos.ps1 -Engine auto|dotnet|wsl`**, at the one call site where the script used to
+  cross into WSL. Everything above it — voice, rate, language, `titleAssets` — is resolved once
+  and reaches either engine the same way, so none of it was reimplemented. `auto` takes `dotnet`
+  when a .NET 10+ SDK is installed.
+
+- **A parity test for the one piece that is logic**: which screenshot a narration entry
+  resolves to. `engine/dotnet/Tests/NameParityTest.cs` cuts `make_video.sh`'s own resolution
+  block out of the script, runs it and the C# on ten cases — `screenshot` winning, empty and
+  null `screenshot`, one match, a title asset at `00_`, two matches, none, neither key, the
+  two-digit glob, case — and requires identical output, error messages included. It is
+  inconclusive, not green, where there is no bash. Sabotaged once to be sure it bites: a
+  case-insensitive match failed it with the diff on screen.
+
+Measured on Windows: the same flow — rate `+15%`, a title asset, every entry by `name` —
+through `-Engine dotnet` and `-Engine wsl` came out 95.68 s both, same resolution, codecs,
+frame rate and bitrate, 1 KB apart. And a project's six flows regenerated end to end with the
+.NET engine, no WSL on the path.
+
+### Fixed
+
+- **The WSL path on Windows had not worked since the preflight was added** (`9fe924d`).
+  `make_videos.ps1` feeds the script to bash as `bash <(tr -d '\r' < make_video.sh)`, where `$0`
+  is `/dev/fd/63`, and `make_video.sh` looked for `check.sh` next to `$0`: every run stopped at
+  `bash: /dev/fd/check.sh: No such file or directory`. The script now takes `ENGINE_DIR` from
+  its caller when set, and `make_videos.ps1` sets it.
+
+- `make_videos.cmd` passed on four arguments, so `-Lang en -AssembleOnly -Engine wsl` lost the
+  engine. It passes all of them.
+
+### Documented
+
+- **The "Windows" gotcha is rewritten** from "the engine does not need a rewrite" to the two
+  engines, plus what cost time on the way: the 403 without `User-Agent` that rules out .NET
+  Framework, `NETSDK1005` for a `net10.0`-only project in a multi-target solution, what to diff
+  when the voice service changes, and the missing nuget.org source on a Visual Studio-only
+  machine.
+
+[#16]: https://github.com/kleer-la/claude-plugins/issues/16
+
 ## 0.4.0
 
 A third recipe. It started as a fork — a project that had its walkthroughs in TypeScript

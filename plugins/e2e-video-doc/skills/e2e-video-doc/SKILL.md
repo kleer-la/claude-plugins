@@ -58,7 +58,9 @@ bash engine/run.sh <flow> --assemble-only   # assemble from the screenshots alre
 VOICE=es-CO-SalomeNeural bash engine/run.sh <flow>
 ```
 
-On Windows: `engine\make_videos.cmd <flow>` (captures on the host, assembles in WSL).
+On Windows: `engine\make_videos.cmd <flow>` (captures on the host; assembles with the .NET
+engine when a .NET 10 SDK is installed, in WSL otherwise — see
+[gotchas](reference/gotchas.md), "Windows").
 
 Report at the end: file path, duration, size, and **how many screenshots were missing** if
 any were.
@@ -125,7 +127,8 @@ bug, say so before patching the script to step around it.
 | `engine/make_video.sh` | The engine. Screenshots + narration → MP4. Driven entirely by the environment. |
 | `engine/run.sh` | Runs one flow from `e2e-video-doc.json`. |
 | `engine/devcontainer.sh` | Resolves a Compose service to the container actually running it. Container names drift; this does not. |
-| `engine/make_videos.ps1` `.cmd` | Windows: capture on the host, assemble in WSL. |
+| `engine/make_videos.ps1` `.cmd` | Windows: capture on the host, then assemble with `engine/dotnet/` or in WSL (`-Engine auto\|dotnet\|wsl`). |
+| `engine/dotnet/` | `make_video.sh` in C#, so Windows assembles without WSL. Same environment variables; `Tests/` checks its screenshot resolution against the script's own. |
 | `engine/generate_title_cards.sh` | Opening and closing title cards. |
 | `recipes/playwright-node/` | `capture.ts` (highlight, focus, scroll) and `apiPanel.ts`. |
 | `recipes/playwright-dotnet/` | `Capture.cs` and `ApiPanel.cs`, the same two in C# for `Microsoft.Playwright` (net48 and .NET 5+), and `HighlightRegressionTest.cs` to copy next to the project's tests. |
