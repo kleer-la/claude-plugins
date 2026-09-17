@@ -32,7 +32,10 @@ SEGMENTS_DIR="$SCREENSHOTS_DIR/segments"
 
 # The same preflight anyone can run on its own with `bash check.sh`, before there is a
 # flow to run. It checks the five tools by *running* them, not by locating them.
-ENGINE_DIR="$(cd "$(dirname "$0")" && pwd)"
+# ENGINE_DIR is taken from the caller when it sets one: make_videos.ps1 runs this script as
+# `bash <(tr -d '\r' < make_video.sh)`, where $0 is /dev/fd/63, and deriving the directory from
+# it looked for check.sh in /dev/fd and failed every Windows run.
+ENGINE_DIR="${ENGINE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 bash "$ENGINE_DIR/check.sh" --quiet
 
 [ -f "$NARRATION_FILE" ] || { echo "No such narration file: $NARRATION_FILE"; exit 1; }
