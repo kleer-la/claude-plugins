@@ -21,7 +21,11 @@ OUTPUT="${OUTPUT:?set OUTPUT=<path of the output mp3>}"
 VOICE="${VOICE:-es-AR-ElenaNeural}"
 RATE="${RATE:-+8%}"
 
-ENGINE_DIR="$(cd "$(dirname "$0")" && pwd)"
+# ENGINE_DIR is taken from the caller when it sets one: a Windows wrapper running this
+# under `bash <(tr -d '\r' < make_brief.sh)` (to survive a CRLF clone) makes $0 something
+# like /dev/fd/63, and deriving the directory from it fails to find check.sh next to it —
+# the same bug e2e-video-doc's make_video.sh hit on Windows (see 6cbb521).
+ENGINE_DIR="${ENGINE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 bash "$ENGINE_DIR/check.sh" --quiet
 
 [ -f "$BRIEFING_FILE" ] || { echo "No such briefing file: $BRIEFING_FILE"; exit 1; }
