@@ -34,7 +34,7 @@ GIT_ROOT=$(jq -r '.git.root // empty' "$START")
 HEAD=$(jq -r '.git.head // empty' "$START")
 [ -n "$GIT_ROOT" ] && [ -n "$HEAD" ] || {
   echo "start.json has no git HEAD. This session is not in a repository, or git was missing at SessionStart."
-  echo "The skill should say so and stop, rather than invent a briefing from the chat."
+  echo "The skill should say so and offer review mode (decisions only), rather than invent a diff or a change beat."
   exit 1
 }
 

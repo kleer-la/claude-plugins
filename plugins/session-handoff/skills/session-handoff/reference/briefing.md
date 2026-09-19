@@ -61,10 +61,36 @@ long, the beat follows — the voice is never cut off mid-sentence. Set
 | `title` | Names the session. Used for the filename slug, not spoken unless you put it in a beat. |
 | `audience` | Who this is for. Write the narration *to* them. |
 | `outcome` | One sentence. If you cannot write it, the session is not ready to brief. |
-| `artifact` | The shared document. `kind` is `git` in v1. |
+| `artifact` | The shared document. `kind` is `git` for a diff briefing, or `review` for one where nothing changed (see below). |
 | `beats[].kind` | `open` · `decision` · `change` · `open-question` · `where`. Orders the story; the engine does not care. |
 | `beats[].path` | For `change` beats: a path that appears in `files.txt`. |
 | `beats[].rejected` | The alternative that was considered and dropped. Gold for teammates; not spoken unless the narration says it. |
+
+## Review briefings
+
+When there is no diff (no git, or the document did not move) and the user asked
+for the briefing anyway, `artifact` says so and there are no `change` beats:
+
+```json
+{
+  "title": "Propuesta de la alianza — revisión, 19 sep",
+  "audience": "el equipo comercial",
+  "duration_target": 100,
+  "outcome": "Aceptamos el alcance, pedimos cambiar el modelo de comisión y quedó abierto el plazo.",
+  "artifact": { "kind": "review", "name": "propuesta-alianza.md", "modified": false },
+  "beats": [
+    { "kind": "open", "narration": "Hoy revisamos la propuesta de la alianza. No la modificamos: solo dimos feedback." },
+    { "kind": "decision", "rejected": "comisión fija por venta", "narration": "Aceptamos el alcance. Pedimos comisión escalonada en lugar de fija." },
+    { "kind": "open-question", "narration": "Sigue abierto el plazo. Falta que nos digan si doce meses es negociable." },
+    { "kind": "where", "narration": "La propuesta está en la carpeta de alianzas, y el hilo, en el grupo del equipo." }
+  ]
+}
+```
+
+Rules that keep it honest: `open` names what was reviewed and says it was not
+modified; only `decision`, `open-question` and `where` follow; one to two
+minutes; nothing quoted from messages other people wrote. The engine reads
+`beats` and nothing else, so it renders like any other briefing.
 
 ## Writing the narration
 

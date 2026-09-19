@@ -93,6 +93,15 @@ wait "$STUB_PID"
 grep -q 'retry after 120s' "$TMP/limited.err" || { echo "429 message lost the Retry-After"; exit 1; }
 echo "   429: fell back to the local engine, Retry-After reported"
 
+echo "== examples: every briefing has beats; the review one has no change beats and says so"
+for f in fixture-briefing sample-briefing review-briefing; do
+  jq -e '.beats | type == "array" and length > 0 and all(.[]; (.narration // "") != "")' \
+    "$PLUGIN_DIR/examples/$f.json" >/dev/null || { echo "$f.json: empty beats or narration"; exit 1; }
+done
+jq -e '.artifact.kind == "review" and .artifact.modified == false and ([.beats[].kind] | index("change") | not) and .beats[0].kind == "open"' \
+  "$PLUGIN_DIR/examples/review-briefing.json" >/dev/null \
+  || { echo "review-briefing.json must be kind review, unmodified, opening with open, with no change beat"; exit 1; }
+
 echo "== hooks: session-start, post-tool, compact does not reset HEAD"
 REPO="$TMP/proj"
 mkdir -p "$REPO/docs"

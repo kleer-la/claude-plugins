@@ -44,7 +44,7 @@ jq -e '.beats | type == "array" and length > 0' "$BRIEFING_FILE" >/dev/null || {
   exit 1
 }
 
-TTS_URL="${SESSION_HANDOFF_TTS_URL:-https://eventos.kleer.la/api/tts/briefing}"
+TTS_URL="${SESSION_HANDOFF_TTS_URL:-https://handoff.kleer.la/api/tts/briefing}"
 
 # 0 = MP3 written, 1 = stop (bad token / refused briefing), 2 = unavailable, use the local engine.
 remote_brief() {

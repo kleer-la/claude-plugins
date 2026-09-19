@@ -1,0 +1,13 @@
+{
+  "title": "Propuesta de la alianza — revisión, 19 sep",
+  "audience": "el equipo comercial",
+  "duration_target": 100,
+  "outcome": "Aceptamos el alcance, pedimos cambiar el modelo de comisión y quedó abierto el plazo.",
+  "artifact": { "kind": "review", "name": "propuesta-alianza.md", "modified": false },
+  "beats": [
+    { "kind": "open", "duration": 6, "narration": "Hoy revisamos la propuesta de la alianza. No la modificamos: solo dimos feedback." },
+    { "kind": "decision", "duration": 8, "rejected": "comisión fija por venta", "narration": "Aceptamos el alcance. Pedimos comisión escalonada en lugar de fija." },
+    { "kind": "open-question", "duration": 6, "narration": "Sigue abierto el plazo. Falta que nos digan si doce meses es negociable." },
+    { "kind": "where", "duration": 5, "narration": "La propuesta está en la carpeta de alianzas, y el hilo, en el grupo del equipo." }
+  ]
+}

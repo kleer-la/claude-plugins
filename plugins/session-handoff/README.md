@@ -22,8 +22,10 @@ VOICE=es-AR-ElenaNeural \
 ```
 
 The [fixture](examples/fixture-briefing.json) is the shorter version the engine
-test uses. Neither is a recording of a real team session; that is the next
-thing this plugin has to survive, and it has not yet.
+test uses. Neither is a recording of a real team session. The first real one, in Claude
+Desktop, stopped for lack of git and a shell; see [where it has actually
+run](#where-it-has-actually-run). The [review sample](examples/review-briefing.json)
+is the shape that session needed.
 
 ## What you get
 
@@ -78,13 +80,22 @@ input is the session, the ancla is the diff, and there is one narrator.
 
 ## What it is built on
 
-Four things, on whichever machine assembles the audio: `ffmpeg` puts the beats
-together, `edge-tts` speaks them, `jq` reads the JSON, `python3` does the
-arithmetic. Microsoft Edge's voices need no API key and no account.
+Three ways to get the audio, in the order the plugin tries them:
 
-**There are no install instructions here on purpose.** Ask Claude to run the
-plugin's preflight, `engine/check.sh`: it reports which of the four are missing
-on *this* machine and with which command.
+1. **The Kleer service, with a token.** `SESSION_HANDOFF_TTS_TOKEN` set: the beats
+   go to the service and one MP3 comes back. Only `curl` and `jq`, so it works
+   where PyPI is blocked. Sign in with Google at https://handoff.kleer.la for the
+   token. A 429, 503, 5xx or no network falls back to the next way.
+2. **The connector, without a shell.** In Claude Desktop or the web chat, add
+   `https://handoff.kleer.la/handoff/mcp` as a custom connector. The skill then has a
+   `briefing_audio` tool and hands you a link to the MP3 (valid one hour).
+3. **The local engine, with no account.** `ffmpeg` puts the beats together,
+   `edge-tts` speaks them, `jq` reads the JSON, `python3` does the arithmetic.
+   Microsoft Edge's voices need no API key and no account.
+
+**There are no install instructions here on purpose.** For the local engine, ask
+Claude to run the plugin's preflight, `engine/check.sh`: it reports which of the four
+are missing on *this* machine and with which command.
 
 ## Getting started
 
@@ -135,7 +146,9 @@ it is deliberately not a longer list.
 |---|---|
 | Engine (`make_brief.sh`) | Linux, `es-AR-ElenaNeural`, sample + fixture. Needs a network for TTS |
 | Hooks + `diff.sh` | Linux, a throwaway git repo, including "compact must not reset HEAD" and "empty tree → exit 2" |
-| Claude Code, a real pair on a shared document | **Not yet.** The skill has not been driven by an agent in an actual session |
+| Claude Code, a real pair on a shared document | An agent drove the skill start to finish on a throwaway repo (hooks, diff, briefing, audio). Not yet a real pair on a shared document |
+| Claude Desktop on Windows, a review session | **First real run, and it stopped:** no git and no shell, so the skill refused. That is what review mode and the connector path were written for; they have not been re-run in a real session yet |
+| The Kleer service (`handoff.kleer.la`) | Live. Called from `make_brief.sh` with the shared secret (200, and 401 without a token) and from the engine test's stub server. A personal `kh_` token has not yet been exercised through the skill |
 | Google Docs / anything that is not git | The contract allows it. There is no recipe |
 | Windows + WSL, macOS | Untested. The engine is the same bash as e2e-video-doc, which has run on both |
 
@@ -148,13 +161,17 @@ it is deliberately not a longer list.
   you can still edit the script.
 - **It does not decide which document is the shared one.** `paths` in
   `session-handoff.json`, or a question, once.
-- **v1 is git.** A Google Doc, a wiki, a Notion page: the JSON contract is
-  the same, the recipe is not written.
+- **The diff recipe is git.** A Google Doc, a wiki, a Notion page: the JSON
+  contract is the same, the recipe is not written. With no git the skill offers
+  review mode instead (below).
 - **It does not replace the PR or the comment on the Doc.** It is *what
   happened and why*; the diff is still the diff.
 - **It does not dramatise two hosts.** One voice, first person, the human who
   did the work.
-- **It will not invent a briefing from an empty diff.** That is the feature.
+- **It will not invent a diff briefing from an empty diff.** That is the feature.
+  When nothing changed, or there is no repository, it offers *review mode*: a one
+  to two minute briefing of decisions and open questions that says out loud that the
+  document was not modified, has no `change` beats, and only starts if you say yes.
 
 ## Questions people will ask
 
@@ -166,7 +183,14 @@ briefing. After that, `make_brief.sh` is bash and edge-tts.
 
 **Will it leak secrets?** It will if you let it. The skill asks before
 assembling, and it is instructed to strip tokens, `.env`, and private asides.
-The MP3 is a thing you send; treat it that way.
+The MP3 is a thing you send; treat it that way. With the service or the connector,
+the narration text leaves your machine: it goes to Kleer, which sends it to
+Microsoft's speech service. Nothing else from your session is sent, and the audio is
+not kept (the connector's link expires after an hour).
+
+**Does it work on Claude Desktop or the web chat?** For the audio, yes, through the
+connector. For the diff, only if the session has a git repository; otherwise the skill
+offers review mode.
 
 **Can it fire automatically every session?** It could. It should not. A
 podcast of every `/clear` is how the team learns to ignore it.

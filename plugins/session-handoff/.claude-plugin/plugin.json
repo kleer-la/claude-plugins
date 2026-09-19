@@ -1,6 +1,6 @@
 {
   "name": "session-handoff",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Turns a working session with an agent into a 3–4 minute briefing the rest of the team can listen to. The conversation is the source; the document diff is the ground truth.",
   "author": {
     "name": "Kleer"

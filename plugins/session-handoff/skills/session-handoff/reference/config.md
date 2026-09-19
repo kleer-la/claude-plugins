@@ -37,10 +37,21 @@ Set these in the environment of the session, not in `session-handoff.json` — t
 
 | Variable | Default | What it is |
 |---|---|---|
-| `SESSION_HANDOFF_TTS_TOKEN` | unset | Your personal token. When set, `make_brief.sh` sends the beats to the synthesis service and gets one finished MP3 back. Needs only `curl` and `jq`. |
-| `SESSION_HANDOFF_TTS_URL` | the Kleer service | Override the service address. |
+| `SESSION_HANDOFF_TTS_TOKEN` | unset | Your personal token (`kh_…`). When set, `make_brief.sh` sends the beats to the synthesis service and gets one finished MP3 back. Needs only `curl` and `jq`. |
+| `SESSION_HANDOFF_TTS_URL` | `https://handoff.kleer.la/api/tts/briefing` | Override the service address. |
+
+**Getting the token:** sign in with Google at https://handoff.kleer.la. The page shows the token once; keep it out of the repo. It has a monthly quota, and past it the service answers 429 and `make_brief.sh` falls back to the local engine.
 
 - **Remote first, local second.** No token → the local engine, exactly as before.
 - **A 429 (over its limits), 503 (busy or switched off), 5xx or an unreachable service** falls back to the local engine, and the message shows the service's `Retry-After`. The plugin never retries the service itself. **A 401/403 or any other 4xx stops** with the service's message: falling back would hide a wrong token.
 - **The narration leaves your machine**: it goes to the service, which sends it to Microsoft's speech service. The skill already strips secrets before writing the briefing; that is what protects you here.
 - The service limits a briefing to 40 beats and 6000 characters of narration, and caps each beat's `duration` at 60 s. Keep it short.
+
+## The connector (Claude Desktop and the web chat)
+
+Where there is no shell to run `make_brief.sh`, add the Kleer connector instead: in
+Claude Desktop or the web chat, *Add custom connector* with
+`https://handoff.kleer.la/handoff/mcp`, then authorise with Google. It gives the
+session a `briefing_audio` tool, which the skill uses when it has no shell. The tool
+returns a download link that works for one hour without a login; the audio is not
+kept afterwards. It shares the monthly quota of the token.

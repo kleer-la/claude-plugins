@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
+
+Written from the first real run, in Claude Desktop on Windows: the session reviewed a
+proposal pasted from another chat, changed no file, and the skill stopped. There was no
+git, no shell, and nothing in the plugin for either.
+
+**Review mode.** No git, or nothing moved, and the user says yes: a one-to-two-minute
+briefing of decisions and open questions, no `change` beats, an opening that says what was
+reviewed and that it was not modified (`artifact.kind: "review"`). Before, exit 1 meant
+"stop"; now the skill offers this. New gotcha about pasted third-party messages.
+
+**The connector path.** Without a shell the skill uses the `briefing_audio` tool of the
+Kleer connector (`https://handoff.kleer.la/handoff/mcp`), and says plainly when there is
+neither a shell nor the tool. The link it returns expires after one hour.
+
+**Defaults.** The service address is now `https://handoff.kleer.la/api/tts/briefing`.
+
+Everything below shipped in the same release:
 
 `make_brief.sh` can synthesise remotely. With `SESSION_HANDOFF_TTS_TOKEN` set it POSTs the
 beats to the synthesis service and writes the MP3 it returns — only `curl` and `jq` needed,

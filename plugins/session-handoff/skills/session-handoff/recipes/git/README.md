@@ -22,7 +22,8 @@ Under `.claude/session-handoff/`:
 | `changes.stat` | `git diff --stat` plus `new file:` lines |
 | `files.txt` | Unique paths, one per line |
 
-Exit 0 if anything moved, 2 if not, 1 if git or `start.json` is missing.
+Exit 0 if anything moved, 2 if not, 1 if git or `start.json` is missing. On 1 or 2
+the skill offers review mode (decisions only) instead of a diff briefing.
 
 ## What it does not do
 
