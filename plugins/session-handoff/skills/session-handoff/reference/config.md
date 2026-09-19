@@ -41,6 +41,6 @@ Set these in the environment of the session, not in `session-handoff.json` — t
 | `SESSION_HANDOFF_TTS_URL` | the Kleer service | Override the service address. |
 
 - **Remote first, local second.** No token → the local engine, exactly as before.
-- **A 5xx or an unreachable service** falls back to the local engine. **A 401/403 or any other 4xx stops** with the service's message: falling back would hide a wrong token.
+- **A 429 (over its limits), 503 (busy or switched off), 5xx or an unreachable service** falls back to the local engine, and the message shows the service's `Retry-After`. The plugin never retries the service itself. **A 401/403 or any other 4xx stops** with the service's message: falling back would hide a wrong token.
 - **The narration leaves your machine**: it goes to the service, which sends it to Microsoft's speech service. The skill already strips secrets before writing the briefing; that is what protects you here.
 - The service limits a briefing to 40 beats and 6000 characters of narration, and caps each beat's `duration` at 60 s. Keep it short.

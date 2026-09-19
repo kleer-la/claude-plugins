@@ -10,9 +10,9 @@
 #   remote  SESSION_HANDOFF_TTS_TOKEN is set: the beats go to the synthesis service and
 #           one finished MP3 comes back. Needs only curl and jq. Tried first.
 #   local   edge-tts, ffmpeg, jq, python3 (check them with `bash check.sh`). Used when there
-#           is no token, or the service is unreachable or fails (5xx). A rejected token
-#           (401) or a refused briefing (4xx) stops here instead: falling back would hide
-#           a configuration problem.
+#           is no token, or the service is unreachable, over its limits (429) or down
+#           (5xx). A rejected token (401) or a refused briefing (other 4xx) stops here
+#           instead: falling back would hide a configuration problem.
 # SESSION_HANDOFF_TTS_URL overrides the service address.
 #
 # Usage:
@@ -49,8 +49,8 @@ TTS_URL="${SESSION_HANDOFF_TTS_URL:-https://eventos.kleer.la/api/tts/briefing}"
 # 0 = MP3 written, 1 = stop (bad token / refused briefing), 2 = unavailable, use the local engine.
 remote_brief() {
   command -v curl >/dev/null 2>&1 || { echo "curl is not installed; cannot reach the synthesis service." >&2; return 2; }
-  local body part="$OUTPUT.part" code=000 rc=2
-  body=$(mktemp)
+  local body hdrs part="$OUTPUT.part" code=000 rc=2 retry
+  body=$(mktemp); hdrs=$(mktemp)
   mkdir -p "$(dirname "$OUTPUT")"
 
   # The service caps duration at 0-60 s per beat; a larger floor buys nothing.
@@ -68,7 +68,7 @@ remote_brief() {
   # The token goes to curl on stdin, not argv, so it does not show in `ps`.
   code=$(printf 'header = "Authorization: Bearer %s"\n' "$SESSION_HANDOFF_TTS_TOKEN" \
     | curl -sS --max-time 90 -K - -X POST "$TTS_URL" -H 'Content-Type: application/json' \
-        --data-binary @"$body" -o "$part" -w '%{http_code}') || code=000
+        --data-binary @"$body" -D "$hdrs" -o "$part" -w '%{http_code}') || code=000
 
   case "$code" in
     200)
@@ -80,13 +80,16 @@ remote_brief() {
     401|403)
       echo "The synthesis service rejected SESSION_HANDOFF_TTS_TOKEN (HTTP $code). Check it, or generate a new one." >&2
       rc=1 ;;
+    429|503)
+      retry=$(sed -n 's/^[Rr]etry-[Aa]fter: *\([0-9]*\).*/\1/p' "$hdrs" | head -1)
+      echo "The synthesis service is busy or switched off (HTTP $code${retry:+, retry after ${retry}s})." >&2 ;;
     4??)
       echo "The synthesis service refused the briefing (HTTP $code): $(jq -r '.error // empty' "$part" 2>/dev/null)" >&2
       rc=1 ;;
     *)
       echo "The synthesis service is unavailable (HTTP $code)." >&2 ;;
   esac
-  rm -f "$body" "$part"
+  rm -f "$body" "$hdrs" "$part"
   return "$rc"
 }
 

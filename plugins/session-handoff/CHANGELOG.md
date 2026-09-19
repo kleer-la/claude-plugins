@@ -4,8 +4,8 @@
 
 `make_brief.sh` can synthesise remotely. With `SESSION_HANDOFF_TTS_TOKEN` set it POSTs the
 beats to the synthesis service and writes the MP3 it returns — only `curl` and `jq` needed,
-no `edge-tts`, `ffmpeg` or `python3`. A 5xx or an unreachable service falls back to the local
-engine; a rejected token stops instead of hiding the problem. Without a token nothing changes.
+no `edge-tts`, `ffmpeg` or `python3`. A 429, 503, 5xx or an unreachable service falls back to the local
+engine (the service's `Retry-After` is shown); a rejected token stops instead of hiding the problem. Without a token nothing changes.
 The engine test covers it against a local stub server.
 
 `ENGINE_DIR` can be set by the caller (Windows wrappers running the script under process

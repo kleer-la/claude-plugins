@@ -25,7 +25,7 @@ SIZE=$(wc -c < "$TMP/fixture.mp3" | tr -d ' ')
 [ "$SIZE" -gt 1000 ] || { echo "mp3 too small: $SIZE bytes"; exit 1; }
 echo "   fixture mp3: $SIZE bytes"
 
-echo "== make_brief.sh remote backend (stub server: payload, 401 stops, 5xx falls back)"
+echo "== make_brief.sh remote backend (stub server: payload, 401 stops, 429/5xx fall back)"
 cat > "$TMP/stub.py" <<'PY'
 import http.server, sys
 status, seen, portfile = int(sys.argv[1]), sys.argv[2], sys.argv[3]
@@ -36,6 +36,8 @@ class H(http.server.BaseHTTPRequestHandler):
         body = b'ID3' + b'x' * 2000 if status == 200 else b'{"error":"stub"}'
         self.send_response(status)
         self.send_header('Content-Length', str(len(body)))
+        if status in (429, 503):
+            self.send_header('Retry-After', '120')
         self.end_headers()
         self.wfile.write(body)
     def log_message(self, *a): pass
@@ -81,6 +83,15 @@ SESSION_HANDOFF_TTS_TOKEN=tok SESSION_HANDOFF_TTS_URL="$STUB_URL" \
 wait "$STUB_PID"
 [ "$(wc -c < "$TMP/fallback.mp3" | tr -d ' ')" -gt 10000 ] || { echo "504 did not fall back to the local engine"; exit 1; }
 echo "   504: fell back to the local engine"
+
+start_stub 429
+SESSION_HANDOFF_TTS_TOKEN=tok SESSION_HANDOFF_TTS_URL="$STUB_URL" \
+  BRIEFING="$PLUGIN_DIR/examples/fixture-briefing.json" OUTPUT="$TMP/limited.mp3" \
+  bash "$ENGINE_DIR/make_brief.sh" >/dev/null 2>"$TMP/limited.err"
+wait "$STUB_PID"
+[ "$(wc -c < "$TMP/limited.mp3" | tr -d ' ')" -gt 10000 ] || { echo "429 did not fall back to the local engine"; exit 1; }
+grep -q 'retry after 120s' "$TMP/limited.err" || { echo "429 message lost the Retry-After"; exit 1; }
+echo "   429: fell back to the local engine, Retry-After reported"
 
 echo "== hooks: session-start, post-tool, compact does not reset HEAD"
 REPO="$TMP/proj"
