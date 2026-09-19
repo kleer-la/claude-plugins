@@ -30,3 +30,17 @@ the same briefing in another accent without editing anything.
 
 There is nothing else to configure. The engine does not read this file; the
 skill does, and then calls `make_brief.sh` with the environment filled in.
+
+## Remote synthesis (no `edge-tts`, no `ffmpeg`)
+
+Set these in the environment of the session, not in `session-handoff.json` — the token is a secret.
+
+| Variable | Default | What it is |
+|---|---|---|
+| `SESSION_HANDOFF_TTS_TOKEN` | unset | Your personal token. When set, `make_brief.sh` sends the beats to the synthesis service and gets one finished MP3 back. Needs only `curl` and `jq`. |
+| `SESSION_HANDOFF_TTS_URL` | the Kleer service | Override the service address. |
+
+- **Remote first, local second.** No token → the local engine, exactly as before.
+- **A 5xx or an unreachable service** falls back to the local engine. **A 401/403 or any other 4xx stops** with the service's message: falling back would hide a wrong token.
+- **The narration leaves your machine**: it goes to the service, which sends it to Microsoft's speech service. The skill already strips secrets before writing the briefing; that is what protects you here.
+- The service limits a briefing to 40 beats and 6000 characters of narration, and caps each beat's `duration` at 60 s. Keep it short.

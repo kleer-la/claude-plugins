@@ -25,6 +25,63 @@ SIZE=$(wc -c < "$TMP/fixture.mp3" | tr -d ' ')
 [ "$SIZE" -gt 1000 ] || { echo "mp3 too small: $SIZE bytes"; exit 1; }
 echo "   fixture mp3: $SIZE bytes"
 
+echo "== make_brief.sh remote backend (stub server: payload, 401 stops, 5xx falls back)"
+cat > "$TMP/stub.py" <<'PY'
+import http.server, sys
+status, seen, portfile = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+class H(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):
+        raw = self.rfile.read(int(self.headers.get('Content-Length', 0)))
+        open(seen, 'wb').write(self.headers.get('Authorization', '').encode() + b'\n' + raw)
+        body = b'ID3' + b'x' * 2000 if status == 200 else b'{"error":"stub"}'
+        self.send_response(status)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *a): pass
+srv = http.server.HTTPServer(('127.0.0.1', 0), H)
+open(portfile, 'w').write(str(srv.server_port))
+srv.handle_request()
+PY
+start_stub() {
+  rm -f "$TMP/port" "$TMP/seen"
+  python3 "$TMP/stub.py" "$1" "$TMP/seen" "$TMP/port" & STUB_PID=$!
+  for _ in $(seq 50); do [ -s "$TMP/port" ] && break; sleep 0.1; done
+  STUB_URL="http://127.0.0.1:$(cat "$TMP/port")/api/tts/briefing"
+}
+cat > "$TMP/remote-briefing.json" <<'JSON'
+{"beats":[{"narration":"uno","duration":1000},{"narration":"","duration":5},{"narration":"dos"}]}
+JSON
+
+start_stub 200
+SESSION_HANDOFF_TTS_TOKEN=tok SESSION_HANDOFF_TTS_URL="$STUB_URL" \
+  BRIEFING="$TMP/remote-briefing.json" OUTPUT="$TMP/remote.mp3" bash "$ENGINE_DIR/make_brief.sh" >/dev/null
+wait "$STUB_PID"
+[ "$(wc -c < "$TMP/remote.mp3" | tr -d ' ')" -eq 2003 ] || { echo "remote mp3 not the stub's bytes"; exit 1; }
+[ "$(head -1 "$TMP/seen" | tr -d '\r')" = "Bearer tok" ] || { echo "token not sent as a bearer"; exit 1; }
+[ "$(tail -n +2 "$TMP/seen" | jq -c '[.beats[] | [.narration, .duration]]')" = '[["uno",60],["dos",0]]' ] \
+  || { echo "payload wrong (empty beat kept, or duration not capped at 60)"; exit 1; }
+[ ! -e "$TMP/remote.mp3.part" ] || { echo "leftover .part file"; exit 1; }
+echo "   200: mp3 written, bearer sent, empty beat dropped, duration capped"
+
+start_stub 401
+set +e
+SESSION_HANDOFF_TTS_TOKEN=bad SESSION_HANDOFF_TTS_URL="$STUB_URL" \
+  BRIEFING="$TMP/remote-briefing.json" OUTPUT="$TMP/rejected.mp3" bash "$ENGINE_DIR/make_brief.sh" >/dev/null 2>&1
+code=$?
+set -e
+wait "$STUB_PID"
+[ "$code" -eq 1 ] && [ ! -e "$TMP/rejected.mp3" ] || { echo "401 should stop with no mp3 (exit $code)"; exit 1; }
+echo "   401: stops, no fallback"
+
+start_stub 504
+SESSION_HANDOFF_TTS_TOKEN=tok SESSION_HANDOFF_TTS_URL="$STUB_URL" \
+  BRIEFING="$PLUGIN_DIR/examples/fixture-briefing.json" OUTPUT="$TMP/fallback.mp3" \
+  bash "$ENGINE_DIR/make_brief.sh" >/dev/null 2>&1
+wait "$STUB_PID"
+[ "$(wc -c < "$TMP/fallback.mp3" | tr -d ' ')" -gt 10000 ] || { echo "504 did not fall back to the local engine"; exit 1; }
+echo "   504: fell back to the local engine"
+
 echo "== hooks: session-start, post-tool, compact does not reset HEAD"
 REPO="$TMP/proj"
 mkdir -p "$REPO/docs"

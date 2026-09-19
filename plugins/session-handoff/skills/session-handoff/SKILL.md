@@ -31,6 +31,9 @@ or a wiki. v1 only ships the git recipe.
 1. **Run `bash engine/check.sh`.** Four tools, checked by running them rather
    than locating them. Do it now: it is the only failure here that needs a
    human to install something.
+   If `SESSION_HANDOFF_TTS_TOKEN` is set, `make_brief.sh` synthesises remotely and
+   needs only `curl` and `jq`; a failed `check.sh` on `edge-tts`/`ffmpeg` then
+   matters only for the local fallback. See [config](reference/config.md).
 2. **Read [reference/gotchas.md](reference/gotchas.md).** Short, and every item
    is there because the alternative was a bad podcast.
 3. **Is there a `session-handoff.json` at the project root?** If not, copy

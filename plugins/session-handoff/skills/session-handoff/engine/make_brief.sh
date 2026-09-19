@@ -6,7 +6,14 @@
 # All it cares about is the contract — an object with a `beats` array, each beat
 # carrying `narration`.
 #
-# Requires: edge-tts, ffmpeg, jq, python3. Check them with `bash check.sh`.
+# Two ways to synthesise:
+#   remote  SESSION_HANDOFF_TTS_TOKEN is set: the beats go to the synthesis service and
+#           one finished MP3 comes back. Needs only curl and jq. Tried first.
+#   local   edge-tts, ffmpeg, jq, python3 (check them with `bash check.sh`). Used when there
+#           is no token, or the service is unreachable or fails (5xx). A rejected token
+#           (401) or a refused briefing (4xx) stops here instead: falling back would hide
+#           a configuration problem.
+# SESSION_HANDOFF_TTS_URL overrides the service address.
 #
 # Usage:
 #   BRIEFING=briefing.json \
@@ -26,14 +33,80 @@ RATE="${RATE:-+8%}"
 # like /dev/fd/63, and deriving the directory from it fails to find check.sh next to it —
 # the same bug e2e-video-doc's make_video.sh hit on Windows (see 6cbb521).
 ENGINE_DIR="${ENGINE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
-bash "$ENGINE_DIR/check.sh" --quiet
 
 [ -f "$BRIEFING_FILE" ] || { echo "No such briefing file: $BRIEFING_FILE"; exit 1; }
+
+# jq is the one tool both paths need; check.sh says how to install it.
+command -v jq >/dev/null 2>&1 || bash "$ENGINE_DIR/check.sh" --quiet
 
 jq -e '.beats | type == "array" and length > 0' "$BRIEFING_FILE" >/dev/null || {
   echo "Briefing is missing a non-empty .beats array: $BRIEFING_FILE"
   exit 1
 }
+
+TTS_URL="${SESSION_HANDOFF_TTS_URL:-https://eventos.kleer.la/api/tts/briefing}"
+
+# 0 = MP3 written, 1 = stop (bad token / refused briefing), 2 = unavailable, use the local engine.
+remote_brief() {
+  command -v curl >/dev/null 2>&1 || { echo "curl is not installed; cannot reach the synthesis service." >&2; return 2; }
+  local body part="$OUTPUT.part" code=000 rc=2
+  body=$(mktemp)
+  mkdir -p "$(dirname "$OUTPUT")"
+
+  # The service caps duration at 0-60 s per beat; a larger floor buys nothing.
+  jq -c --arg voice "$VOICE" --arg rate "$RATE" '{
+    voice: $voice, rate: $rate,
+    beats: [.beats[] | select((.narration // "") != "")
+            | {narration, duration: ([([.duration // 0, 0] | max), 60] | min)}]
+  }' "$BRIEFING_FILE" > "$body"
+
+  echo "Building briefing (remote)"
+  echo "   Voice:     $VOICE"
+  echo "   Briefing:  $BRIEFING_FILE"
+  echo "   Output:    $OUTPUT"
+
+  # The token goes to curl on stdin, not argv, so it does not show in `ps`.
+  code=$(printf 'header = "Authorization: Bearer %s"\n' "$SESSION_HANDOFF_TTS_TOKEN" \
+    | curl -sS --max-time 90 -K - -X POST "$TTS_URL" -H 'Content-Type: application/json' \
+        --data-binary @"$body" -o "$part" -w '%{http_code}') || code=000
+
+  case "$code" in
+    200)
+      if [ -s "$part" ]; then
+        mv "$part" "$OUTPUT"; rc=0
+      else
+        echo "The synthesis service answered 200 with no audio." >&2
+      fi ;;
+    401|403)
+      echo "The synthesis service rejected SESSION_HANDOFF_TTS_TOKEN (HTTP $code). Check it, or generate a new one." >&2
+      rc=1 ;;
+    4??)
+      echo "The synthesis service refused the briefing (HTTP $code): $(jq -r '.error // empty' "$part" 2>/dev/null)" >&2
+      rc=1 ;;
+    *)
+      echo "The synthesis service is unavailable (HTTP $code)." >&2 ;;
+  esac
+  rm -f "$body" "$part"
+  return "$rc"
+}
+
+if [ -n "${SESSION_HANDOFF_TTS_TOKEN:-}" ]; then
+  remote_rc=0
+  remote_brief || remote_rc=$?
+  if [ "$remote_rc" -eq 0 ]; then
+    SIZE=$(du -h "$OUTPUT" | cut -f1)
+    DUR=""
+    if command -v ffmpeg >/dev/null 2>&1; then
+      DUR=$(ffmpeg -hide_banner -i "$OUTPUT" 2>&1 | sed -n 's/.*Duration: \([0-9:.]*\).*/\1/p' | head -1) || true
+    fi
+    echo "Done: $OUTPUT  (${DUR:+$DUR, }$SIZE, remote)"
+    exit 0
+  fi
+  [ "$remote_rc" -eq 1 ] && exit 1
+  echo "Using the local engine instead." >&2
+fi
+
+bash "$ENGINE_DIR/check.sh" --quiet
 
 WORKDIR=$(python3 -c "import os,sys; print(os.path.abspath(os.path.dirname(sys.argv[1]) or '.'))" "$OUTPUT")
 AUDIO_DIR="$WORKDIR/.session-handoff-audio"
