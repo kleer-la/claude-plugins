@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.6.0
+
+Both found closing out kleer-la/cenped#277, the fifth project to adopt the Capybara recipe:
+a silent beat that broke the engine, and a title card that had no story of its own on
+this recipe the way it did on the Node one.
+
+### Added
+
+- **`show_html` in the Rails/Capybara recipe** — renders arbitrary HTML for `capture` to
+  photograph, parity with the Playwright recipe's `page.setContent` (`apiPanel.ts`,
+  `showCard`). Deliberately just the primitive, not a port of that file's request/response
+  card layout or fit-to-frame scaling: `visit "data:text/html;charset=utf-8;base64,…"`, then
+  style and size the HTML yourself. The project this shipped for uses it for a branded
+  opening/closing title card (its own logo, rendered by the browser instead of drawn onto a
+  flat PNG by a project script) — but it is a general primitive, not a title-card feature;
+  anything that needs to show generated or static content mid-walkthrough can reach for it.
+  Base64, not a bare `data:text/html,` with the markup inlined: keeps quotes, unicode and
+  newlines in the HTML from having to survive URL-encoding.
+
+### Fixed
+
+- **A narration entry with `"narration": ""` broke the run, two steps after the actual
+  cause.** A silent beat — a title card shown with nothing said over it — fed `edge-tts` an
+  empty string. It still wrote a file, wordlessly, but not a decodable one: the failure
+  surfaced at the `ffprobe` two lines down as "Failed to find two consecutive MPEG audio
+  frames", naming the wrong step. `make_video.sh` now builds a silent clip with
+  `ffmpeg -f lavfi -i anullsrc` for an empty narration instead of calling `edge-tts`,
+  matching its own mono/24kHz output so a silent segment concatenates identically to a
+  spoken one. Found integrating `titleAssets` (0.5.0's `rate`/`titleAssets` config, closing
+  the two gaps kleer-la/cenped#277 had been blocked on) into a real project's opening card,
+  which is silent by design — the narration carries the welcome line over it starting on
+  the *second* beat, not the first.
+
 ## 0.5.0
 
 Windows no longer needs WSL to assemble a video ([#16]). A team that is otherwise all Visual

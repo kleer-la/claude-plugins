@@ -17,6 +17,8 @@
 #       capture "total", highlight: "#total", scroll: "css:#total"
 #     end
 #   end
+require "base64"
+
 module VideoRecording
   # The box is drawn as its own element on document.body, not as a mark on the element
   # it frames. A mark on the element is lost the moment the framework re-renders that
@@ -87,6 +89,22 @@ module VideoRecording
 
     highlight_off if marks.any?
     filename
+  end
+
+  # Renders arbitrary HTML for `capture` to photograph — a title card, a static summary,
+  # anything that is not a real app screen. Parity with the Playwright recipe's
+  # `page.setContent` (see recipes/playwright-node/apiPanel.ts, `showCard`): same
+  # mechanism, deliberately without that file's request/response card layout or
+  # fit-to-frame scaling — style the HTML yourself, and keep it short enough to fit
+  # the viewport, since this recipe's `capture` takes a viewport shot, not a full-page
+  # one. Base64, not a bare `data:text/html,` with the markup inlined: keeps quotes,
+  # unicode and newlines in the HTML from having to survive URL-encoding, and Selenium
+  # accepts a `data:` URI of any reasonable title-card size.
+  #
+  #   show_html("<h1 style='text-align:center;margin-top:40vh'>Checkout demo</h1>")
+  #   capture("opening")
+  def show_html(html)
+    visit "data:text/html;charset=utf-8;base64,#{Base64.strict_encode64(html)}"
   end
 
   # Closes whatever your stack puts on top of the page — a trial strip, a dev-environment

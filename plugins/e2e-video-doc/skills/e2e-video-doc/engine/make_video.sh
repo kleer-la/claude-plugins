@@ -112,10 +112,23 @@ for i in $(seq 0 $((ENTRIES - 1))); do
   fi
 
   echo "  [$IDX] ${NARRATION_TEXT:0:60}..."
+  if [ -z "$NARRATION_TEXT" ]; then
+    # A silent beat — a title card shown with nothing said over it. edge-tts does not
+    # mean this: fed an empty string it still writes a file, but not a decodable one
+    # ("Failed to find two consecutive MPEG audio frames" from the ffprobe two lines
+    # down), so the run died on the next segment instead of here. mono/24kHz matches
+    # what edge-tts itself outputs, so a silent segment mixes into the concat the same
+    # as a spoken one.
+    ffmpeg -y -f lavfi -i "anullsrc=r=24000:cl=mono" -t "$DURATION" -q:a 9 \
+      -acodec libmp3lame "$AUDIO" 2>"$TMP_ERR" || {
+      echo "building silent audio failed on entry $IDX." >&2
+      tail -5 "$TMP_ERR" | sed 's/^/  /' >&2
+      exit 1
+    }
   # stderr is kept, not discarded: edge-tts reaches the network, and a failure here used
   # to end the run in silence — the last thing on screen was this line, with no error and
   # no file. Quiet on success, loud on failure.
-  if ! edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" \
+  elif ! edge-tts --voice "$VOICE" --rate "$RATE" --text "$NARRATION_TEXT" \
        --write-media "$AUDIO" 2>"$TMP_ERR"; then
     echo "edge-tts failed on entry $IDX. Usual causes: a voice name that does not exist" >&2
     echo "(list them with: edge-tts --list-voices | grep ${VOICE%%-*}); no network access;" >&2
