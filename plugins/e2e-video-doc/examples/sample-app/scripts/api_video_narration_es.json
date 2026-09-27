@@ -1,0 +1,27 @@
+[
+  {
+    "screenshot": "01_token_emitido.png",
+    "duration": 8,
+    "narration": "Este recorrido nunca abre la tienda. Un mayorista envía su contraseña una sola vez y recibe un token: la credencial que va a usar en cada llamada de acá en más."
+  },
+  {
+    "screenshot": "02_pedido_sin_token.png",
+    "duration": 7,
+    "narration": "El mismo pedido, enviado sin ninguna credencial, es rechazado. Se dibuja en rojo, y se filma antes que la llamada exitosa, para que la diferencia entre las dos hable por sí sola."
+  },
+  {
+    "screenshot": "03_pedido_autorizado.png",
+    "duration": 9,
+    "narration": "La misma llamada, ahora con el token como credencial, se crea. El encabezado muestra solo sus primeros caracteres: alcanza para reconocerlo, no sirve para nadie que esté viendo el video."
+  },
+  {
+    "screenshot": "04_registro_de_acceso.png",
+    "duration": 8,
+    "narration": "Esto no es una llamada a la API: es lo que el registro de acceso del propio servidor guardó de ese pedido. Qué socio llamó, y nada más — ni la contraseña, ni el token, ni los datos del pedido."
+  },
+  {
+    "screenshot": "05_pedido_en_pantalla.png",
+    "duration": 7,
+    "narration": "El pedido que creó la API aparece en la misma tienda que usa cualquiera, encontrado por su identificador. El test lo verifica en pantalla; no solo lo muestra."
+  }
+]

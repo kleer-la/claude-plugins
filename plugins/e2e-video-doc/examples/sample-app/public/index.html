@@ -47,5 +47,21 @@
       </div>
     </aside>
   </div>
+
+  <section id="track" style="margin-top:26px">
+    <h2 data-i18n="track_order">Track an order</h2>
+    <div class="card">
+      <div class="track-body">
+        <label for="track-id" data-i18n="order_id">Order id</label>
+        <input id="track-id">
+        <p style="margin:16px 0 0"><button id="track-btn" data-i18n="look_up">Look up</button></p>
+        <p class="track-error hidden" id="track-error" data-i18n="order_not_found">No order with that id.</p>
+        <div class="track-result hidden" id="track-result">
+          <p class="order-id" id="track-result-id"></p>
+          <p style="margin:4px 0 0"><span class="badge" id="track-result-status"></span></p>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 <script src="/app.js"></script>

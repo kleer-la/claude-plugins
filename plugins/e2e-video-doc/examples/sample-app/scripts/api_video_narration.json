@@ -1,0 +1,27 @@
+[
+  {
+    "screenshot": "01_token_emitido.png",
+    "duration": 8,
+    "narration": "This flow never opens the storefront. A wholesale partner sends its password once and gets back a token: the credential it will use for every call from here on."
+  },
+  {
+    "screenshot": "02_pedido_sin_token.png",
+    "duration": 7,
+    "narration": "The same order, sent with no credential at all, is rejected. It is drawn in red, and filmed before the successful call, so the difference between the two is the point."
+  },
+  {
+    "screenshot": "03_pedido_autorizado.png",
+    "duration": 9,
+    "narration": "The identical call, this time with the token as a bearer credential, is created. The header shows only its first characters: enough to recognize, useless to anyone watching the video."
+  },
+  {
+    "screenshot": "04_registro_de_acceso.png",
+    "duration": 8,
+    "narration": "Not an API call: what the server's own access log kept about that request. Which partner called, and nothing else — no password, no token, no order details."
+  },
+  {
+    "screenshot": "05_pedido_en_pantalla.png",
+    "duration": 7,
+    "narration": "The order the API created shows up in the same storefront anyone else uses, found by its id. The test checks the screen; it does not just show it."
+  }
+]

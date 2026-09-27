@@ -66,4 +66,7 @@ input {
   display: inline-block; padding: 2px 10px; border-radius: 20px;
   background: #e8f5ed; color: var(--ok); font-size: 12px; font-weight: 600;
 }
+.track-body { padding: 18px; max-width: 360px; }
+.track-error { color: #a4302a; font-size: 14px; margin: 12px 0 0; }
+.track-result { margin-top: 14px; }
 .hidden { display: none; }

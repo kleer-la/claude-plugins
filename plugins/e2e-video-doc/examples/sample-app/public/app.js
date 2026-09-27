@@ -19,6 +19,10 @@ const STRINGS = {
     status_confirmed: "confirmed",
     items: (n) => `${n} item${n === 1 ? "" : "s"}`,
     locale: "en-US",
+    track_order: "Track an order",
+    order_id: "Order id",
+    look_up: "Look up",
+    order_not_found: "No order with that id.",
   },
   es: {
     brand: "Tienda de ejemplo",
@@ -37,6 +41,10 @@ const STRINGS = {
     status_confirmed: "confirmado",
     items: (n) => `${n} artículo${n === 1 ? "" : "s"}`,
     locale: "es-AR",
+    track_order: "Buscar un pedido",
+    order_id: "Identificador del pedido",
+    look_up: "Buscar",
+    order_not_found: "No hay ningún pedido con ese identificador.",
   },
 };
 
@@ -114,6 +122,22 @@ document.querySelector("#place-order").addEventListener("click", async (e) => {
   document.querySelector("#order-status").textContent =
     order.status === "confirmed" ? t.status_confirmed : order.status;
   document.querySelector("#confirmation").classList.remove("hidden");
+});
+
+document.querySelector("#track-btn").addEventListener("click", async () => {
+  const id = document.querySelector("#track-id").value.trim();
+  document.querySelector("#track-error").classList.add("hidden");
+  document.querySelector("#track-result").classList.add("hidden");
+  const res = await fetch(`/api/orders/${encodeURIComponent(id)}`);
+  if (!res.ok) {
+    document.querySelector("#track-error").classList.remove("hidden");
+    return;
+  }
+  const order = await res.json();
+  document.querySelector("#track-result-id").textContent = order.id;
+  document.querySelector("#track-result-status").textContent =
+    order.status === "confirmed" ? t.status_confirmed : order.status;
+  document.querySelector("#track-result").classList.remove("hidden");
 });
 
 applyStrings();

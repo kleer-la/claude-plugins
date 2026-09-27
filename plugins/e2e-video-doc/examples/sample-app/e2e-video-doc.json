@@ -10,6 +10,7 @@
     "es": { "voice": "es-AR-ElenaNeural", "suffix": "_es" }
   },
   "flows": {
-    "checkout": {}
+    "checkout": {},
+    "api": {}
   }
 }

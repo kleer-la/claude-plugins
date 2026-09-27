@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.0
+
+`examples/sample-app` had one API card, drawn as a detour in the middle of a UI
+walkthrough — a reader deciding whether the plugin can document *their* API, which is
+mostly calls and barely a screen, had nothing closer to their own shape to look at ([#18]).
+
+### Added
+
+- **`api`, a second flow in `examples/sample-app`** where a call is the whole story: a
+  wholesale partner trades a password for a token (`POST /api/token`), is rejected without
+  one (`expect: "reject"`), is not with it (`headers` + `trimValue` on the bearer,
+  `pickFields` on the response), and the order it created is looked up on a real screen and
+  *asserted*, not just shown. A `showCard` in between draws the server's own access-log row
+  for that call — proof of what a guard keeps, fetched, never invented. The guard lives on
+  a new `POST /api/partner/orders`, not on `/api/orders`: that endpoint is what the
+  storefront's own "Place order" button calls, and `checkout` is untouched by any of this.
+  Being in the sample, `api` is also the first regression coverage `headers`,
+  `expect: "reject"` and `showCard` have had in this plugin.
+
+[#18]: https://github.com/kleer-la/claude-plugins/issues/18
+
 ## 0.6.0
 
 Both found closing out kleer-la/cenped#277, the fifth project to adopt the Capybara recipe:
