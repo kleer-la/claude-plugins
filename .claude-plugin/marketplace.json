@@ -16,6 +16,12 @@
       "source": "./plugins/session-handoff",
       "description": "Turns a working session with an agent into a 3–4 minute briefing the rest of the team can listen to. The conversation is the source; the document diff is the ground truth.",
       "version": "0.2.0"
+    },
+    {
+      "name": "empresas-ar",
+      "source": "./plugins/empresas-ar",
+      "description": "Cross-references Argentine companies by CUIT, domain and email: validates the identifiers, then matches the company across Fugazzeta, Keventer, Gmail and OpenArg public data.",
+      "version": "0.1.0"
     }
   ]
 }

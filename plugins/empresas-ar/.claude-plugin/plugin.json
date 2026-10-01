@@ -1,0 +1,8 @@
+{
+  "name": "empresas-ar",
+  "version": "0.1.0",
+  "description": "Cross-reference Argentine companies by CUIT, domain and email: validate and normalise the identifiers, then match the same company across Fugazzeta, Keventer, Gmail and OpenArg public data.",
+  "author": {
+    "name": "Kleer"
+  }
+}

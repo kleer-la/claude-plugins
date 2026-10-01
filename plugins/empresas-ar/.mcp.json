@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "openarg": {
+      "type": "http",
+      "url": "https://mcp.openarg.org/mcp",
+      "headers": { "Authorization": "Bearer ${OPENARG_API_KEY}" }
+    }
+  }
+}
