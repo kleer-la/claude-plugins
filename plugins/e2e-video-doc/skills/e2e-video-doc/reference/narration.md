@@ -51,6 +51,13 @@ shift. `screenshot` still wins outright when both are present.
 { "name": "total", "duration": 6, "narration": "The total updates as they add items." }
 ```
 
+## A caption file comes free
+
+`make_video.sh` writes a `.srt` next to the MP4 (same name, `.srt` extension) — one cue
+per entry that has a `narration`, timed against how long that segment actually plays, not
+`duration`. A silent beat (`"narration": ""`) gets no cue but still advances the clock, so
+later ones stay in sync. Nothing to configure; it is there every time the engine runs.
+
 ## When a screenshot is missing
 
 The engine skips it, says so, and reports how many were missing at the end. If **all** of

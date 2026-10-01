@@ -62,7 +62,7 @@ The declaration order matters: the first language listed is the default.
 | `capture` | The command that runs the walkthrough and leaves the PNGs. **Yours**: your stack, your devcontainer, your fixtures. Runs from the repo root, with the variables below exported. |
 | `screenshots` | Where it leaves them, relative to the repo root. |
 | `narration` | The narration JSON for that flow. See [narration.md](narration.md). |
-| `output` | Where the MP4 goes. **Outside `tmp/`** — see [gotchas.md](gotchas.md). |
+| `output` | Where the MP4 goes. **Outside `tmp/`** — see [gotchas.md](gotchas.md). A `.srt` is written alongside it, same name — see [narration.md](narration.md). |
 | `voice` | See [voices.md](voices.md). A language's voice wins over the flow's, which wins over the default. `VOICE=` in the environment overrides all of them. |
 | `rate` | Speech rate passed to `edge-tts --rate`, e.g. `"+8%"` or `"-10%"`. Same precedence as `voice`: language wins over flow, which wins over the default; `RATE=` in the environment overrides all of them. Default `"+0%"`. |
 | `titleAssets` | Optional map of `name` → image file, relative to the repo root. Each is copied into the screenshots directory as `00_<name>.png` before assembling — a static opening or closing card that is a file, not something the capture step draws. Pair it with a narration entry naming it: `{ "name": "opening", ... }` — see [narration.md](narration.md), "Naming an entry instead of numbering it". |

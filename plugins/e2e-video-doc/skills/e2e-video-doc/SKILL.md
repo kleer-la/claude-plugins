@@ -124,8 +124,9 @@ bug, say so before patching the script to step around it.
 | | |
 |---|---|
 | `engine/check.sh` | Preflight: are the five tools here and do they run? Needs nothing set up; run it first. |
-| `engine/make_video.sh` | The engine. Screenshots + narration → MP4. Driven entirely by the environment. |
+| `engine/make_video.sh` | The engine. Screenshots + narration → MP4 and a `.srt` next to it. Driven entirely by the environment. |
 | `engine/run.sh` | Runs one flow from `e2e-video-doc.json`. |
+| `engine/diff_frames.sh` | Scores two capture directories' matching frames with SSIM, to see which ones moved after the product changed and the flow was recaptured. Read it before trusting its default threshold on a real project. |
 | `engine/devcontainer.sh` | Resolves a Compose service to the container actually running it. Container names drift; this does not. |
 | `engine/make_videos.ps1` `.cmd` | Windows: capture on the host, then assemble with `engine/dotnet/` or in WSL (`-Engine auto\|dotnet\|wsl`). |
 | `engine/dotnet/` | `make_video.sh` in C#, so Windows assembles without WSL. Same environment variables; `Tests/` checks its screenshot resolution against the script's own. |

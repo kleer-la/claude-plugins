@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.8.0
+
+Two things nothing in the engine produced before: a caption file that comes free with
+every run, and a way to ask what changed between two of them.
+
+### Added
+
+- **`make_video.sh` writes a `.srt` alongside the MP4** ([#22]) — one cue per narrated
+  entry, timed against each segment's *measured* length rather than the `duration` the
+  JSON asked for. That distinction turned out to matter: `-shortest` stops a segment at
+  whichever input stream ends first, which is the audio track whenever the `duration`
+  floor doesn't exceed it — silently dropping the "+ 0.5" pad `SEGMENT_DURATION` computes
+  and that this file's own comments described as real. Timing cues off `ffprobe` on the
+  built segment file is correct regardless of that, and stays correct if the padding is
+  ever fixed. Verified on the sample app's `checkout` and `api` flows: the last cue ends
+  within 50ms of the finished MP4's own duration, down from a drift of several seconds
+  when the cues were timed off `SEGMENT_DURATION` instead. A silent beat gets no cue but
+  still advances the clock, so later cues stay in sync — checked with a title-card
+  fixture. No new dependency: `ffprobe` and `python3` are already required.
+- **`engine/diff_frames.sh`** ([#21]) — scores two capture directories' matching
+  `NN_name.png` pairs with ffmpeg's own SSIM filter, for deciding which numbered frames
+  actually moved before touching narration, after the product changed and the flow was
+  recaptured. No new dependency either: ffmpeg is already required to assemble the video.
+  `videos/` and `tmp/` are gitignored, so there is no committed baseline — the two
+  directories are whatever the project keeps aside itself (a copy of the previous run).
+
+  **The default threshold needed real numbers, not a guess.** Two independent captures of
+  the sample app's `checkout` flow, nothing changed between them, scored exactly
+  `1.000000` on every frame — no measured noise floor to stay clear of. Changing one
+  product's price — visible in a five-row catalogue table, a cart total and a
+  confirmation card — moved the six checkout frames to between `0.997502` and `0.999653`,
+  and the SSIM is of the *whole* frame: three frames where the price is a small part of a
+  mostly-unchanged page barely moved at all. The shipped default, `0.999`, catches the
+  three frames where the changed text occupies more of the shot and misses the other
+  three — documented in the script itself, with the same numbers, rather than implied by
+  the default alone. There is no universal number: the comment tells a project to measure
+  its own quiet state first.
+
+[#21]: https://github.com/kleer-la/claude-plugins/issues/21
+[#22]: https://github.com/kleer-la/claude-plugins/issues/22
+
 ## 0.7.0
 
 `examples/sample-app` had one API card, drawn as a detour in the middle of a UI

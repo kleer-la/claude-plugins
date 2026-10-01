@@ -71,7 +71,20 @@ SEGMENTS_DIR="$(abspath "$SEGMENTS_DIR")"
 
 ENTRIES=$(jq length "$NARRATION_FILE")
 CONCAT_FILE="$SEGMENTS_DIR/concat.txt"
+SRT_FILE="$SEGMENTS_DIR/subtitles.srt"
 : > "$CONCAT_FILE"
+: > "$SRT_FILE"
+
+# HH:MM:SS,mmm, what .srt wants. python3 is already a dependency (SEGMENT_DURATION below).
+srt_time() { python3 -c "
+s = $1
+h, s = divmod(s, 3600)
+m, s = divmod(s, 60)
+print('%02d:%02d:%06.3f' % (h, m, s), end='')
+" | tr '.' ','; }
+
+CURSOR=0
+CUE=1
 
 MISSING=0
 for i in $(seq 0 $((ENTRIES - 1))); do
@@ -157,6 +170,25 @@ for i in $(seq 0 $((ENTRIES - 1))); do
     }
 
   echo "file '$SEGMENT'" >> "$CONCAT_FILE"
+
+  # A cue per spoken entry, timed against the running total of each segment's *actual*
+  # length — not SEGMENT_DURATION, which `-shortest` does not always honour: it stops a
+  # segment at whichever input stream ends first, which is the audio whenever the
+  # `duration` floor doesn't exceed it, silently dropping the "+ 0.5" pad. Measuring the
+  # file that is actually about to be concatenated is correct regardless of that, and
+  # stays correct if that padding is ever fixed. A silent beat gets no cue (nothing to
+  # caption) but still advances the clock, so later cues stay in sync.
+  REAL_DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$SEGMENT")
+  if [ -n "$NARRATION_TEXT" ]; then
+    {
+      echo "$CUE"
+      printf '%s --> %s\n' "$(srt_time "$CURSOR")" "$(srt_time "$(python3 -c "print($CURSOR + $REAL_DURATION)")")"
+      echo "$NARRATION_TEXT"
+      echo
+    } >> "$SRT_FILE"
+    CUE=$((CUE + 1))
+  fi
+  CURSOR=$(python3 -c "print($CURSOR + $REAL_DURATION)")
 done
 
 # Without this guard ffmpeg gets an empty list and returns its own error instead of
@@ -174,10 +206,16 @@ ffmpeg -y -f concat -safe 0 -i "$CONCAT_FILE" -c copy "$OUTPUT" 2>"$TMP_ERR" || 
   exit 1
 }
 
+OUTPUT_SRT="${OUTPUT%.*}.srt"
+if [ -s "$SRT_FILE" ]; then
+  cp "$SRT_FILE" "$OUTPUT_SRT"
+fi
+
 rm -rf "$AUDIO_DIR" "$SEGMENTS_DIR"
 
 DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUTPUT" | cut -d. -f1)
 SIZE=$(du -h "$OUTPUT" | cut -f1)
 echo "Done: $OUTPUT  (${DUR}s, $SIZE)"
+[ -f "$OUTPUT_SRT" ] && echo "       $OUTPUT_SRT"
 [ "$MISSING" -gt 0 ] && echo "Heads up: $MISSING screenshots were missing and are not in the video."
 exit 0
