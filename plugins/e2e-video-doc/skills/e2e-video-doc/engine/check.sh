@@ -47,6 +47,28 @@ edge_tts_install() {
   fi
 }
 
+# jq ships a static binary with no dependencies, which makes a no-root fallback cheap: one
+# curl into a directory already on most people's PATH. ffmpeg has a static build too, but at
+# ~80MB against jq's ~1MB it is a much bigger ask, so it stays out of this hint for now.
+# Reported by someone without sudo on Linux Mint, who had no path printed here at all.
+jq_install() {
+  echo "    $PKG jq"
+  if [ "$(uname -s)" = "Darwin" ]; then
+    return
+  fi
+  case "$(uname -m)" in
+    x86_64)        ARCH=amd64 ;;
+    aarch64|arm64) ARCH=arm64 ;;
+    *)             ARCH="" ;;
+  esac
+  if [ -n "$ARCH" ]; then
+    echo "  No sudo? A static binary needs none:"
+    echo "    mkdir -p ~/.local/bin"
+    echo "    curl -L https://github.com/jqlang/jq/releases/latest/download/jq-linux-$ARCH -o ~/.local/bin/jq"
+    echo "    chmod +x ~/.local/bin/jq   # confirm ~/.local/bin is on PATH: echo \$PATH"
+  fi
+}
+
 # Checked by running them, not by `command -v`. A tool can be on PATH and still be
 # unusable: a Homebrew Python upgrade leaves edge-tts behind with a shebang pointing at an
 # interpreter that no longer exists, and `command -v` happily finds that file. Existing and
@@ -67,7 +89,7 @@ for cmd in $TOOLS; do
     case $cmd in
       edge-tts) echo "  Install:" ; edge_tts_install "" ;;
       ffmpeg|ffprobe) echo "  Install: $PKG ffmpeg" ;;
-      jq)       echo "  Install: $PKG jq" ;;
+      jq)       echo "  Install:" ; jq_install ;;
       python3)  echo "  Install: $PKG python3" ;;
     esac
     exit 1

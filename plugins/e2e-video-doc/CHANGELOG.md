@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.1
+
+### Fixed
+
+- **`check.sh`'s `jq` hint assumed sudo** ([#23]) — it printed `apt install jq` with
+  nothing to do when that fails, where `edge-tts` already had a no-root path spelled out.
+  `jq` ships a static binary with no dependencies, so the hint now also prints a
+  `curl`-into-`~/.local/bin` fallback (arch-detected via `uname -m`, Linux only — Homebrew
+  on macOS never needed sudo to begin with). `ffmpeg`'s static build stayed out of this:
+  ~80MB against jq's ~1MB is a much bigger ask for a hint. Reported by someone without
+  root on Linux Mint, who worked around it by hand because nothing here offered one.
+
+[#23]: https://github.com/kleer-la/claude-plugins/issues/23
+
 ## 0.8.0
 
 Two things nothing in the engine produced before: a caption file that comes free with
