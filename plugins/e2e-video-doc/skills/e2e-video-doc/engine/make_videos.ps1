@@ -152,10 +152,19 @@ if ($Engine -eq "auto") {
     # A .NET 10 SDK is the whole requirement of the dotnet engine. Without it, WSL is the
     # engine this script has always used.
     $sdks = @()
-    if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+    $dotnetCmd = Get-Command dotnet -ErrorAction SilentlyContinue
+    if ($dotnetCmd) {
         $sdks = @(& dotnet --list-sdks 2>$null | ForEach-Object { if ($_ -match '^(\d+)\.') { [int]$Matches[1] } })
     }
     $Engine = if (($sdks | Where-Object { $_ -ge 10 }).Count -gt 0) { "dotnet" } else { "wsl" }
+    if ($Engine -eq "wsl") {
+        # Falling back without saying why is how a clean install ends up in WSL and nobody
+        # knows: the reason is one of three, and they have three different fixes.
+        $why = if (-not $dotnetCmd) { "`dotnet` is not on PATH in this shell (open a new terminal, or a Developer PowerShell, after installing the SDK)" }
+               elseif ($sdks.Count -eq 0) { "`dotnet --list-sdks` listed no SDKs (only a runtime is installed, or the SDK is for another architecture)" }
+               else { "the SDKs found are major version(s) $($sdks -join ', '); the engine targets net10.0 and needs 10 or newer" }
+        Write-Warning "Engine auto: using wsl, because $why. Force the other with -Engine dotnet."
+    }
 }
 
 if ($Engine -eq "dotnet") {

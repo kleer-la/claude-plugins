@@ -23,6 +23,12 @@ if [ "${1:-}" = "--quiet" ]; then QUIET=yes; fi
 
 TOOLS="edge-tts ffmpeg ffprobe jq python3"
 
+# Older edge-tts releases gave version problems (reported by the maintainer; the exact
+# failure is not recorded here), so the engine wants a release above 7.3. The spec is quoted wherever it is printed: unquoted, the
+# shell reads the > as a redirect and "installs" edge-tts into a file called 7.3.
+EDGE_TTS_MIN="7.3"
+EDGE_TTS_SPEC="edge-tts>$EDGE_TTS_MIN"
+
 # The hint leads with the package manager the reader actually has: being told to
 # `apt install` on a Mac is one more translation between them and a working command.
 case "$(uname -s)" in
@@ -38,10 +44,10 @@ esac
 # terminal, which an agent does not have, so it is a line to hand to a human.
 edge_tts_install() {
   if command -v pipx >/dev/null 2>&1; then
-    echo "    pipx install $1edge-tts"
+    echo "    pipx install $1\"$EDGE_TTS_SPEC\""
   else
     echo "    $PIPX && pipx ensurepath   # pipx is not here either, and it comes first"
-    echo "    pipx install $1edge-tts"
+    echo "    pipx install $1\"$EDGE_TTS_SPEC\""
     echo "  The sudo needs a human at a terminal. \`pip install edge-tts\` is not a way"
     echo "  around it: recent Debian/Ubuntu refuse it (PEP 668)."
   fi
@@ -83,6 +89,15 @@ runs() {
   esac >/dev/null 2>&1
 }
 
+# Prints the installed edge-tts version ("edge-tts 7.2.8" -> 7.2.8), nothing if unreadable.
+edge_tts_version() { edge-tts --version 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -1; }
+
+# True when $1 is strictly above $EDGE_TTS_MIN: the newest of the two sorts last, and
+# equal to the minimum is not above it.
+above_min() {
+  [ "$1" != "$EDGE_TTS_MIN" ] && [ "$(printf '%s\n%s\n' "$EDGE_TTS_MIN" "$1" | sort -V | tail -1)" = "$1" ]
+}
+
 for cmd in $TOOLS; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Missing: $cmd"
@@ -103,6 +118,13 @@ for cmd in $TOOLS; do
                 echo "    which -a edge-tts   # remove the stale one, then: hash -r" ;;
       *)        echo "  Reinstall it: $PKG $cmd" ;;
     esac
+    exit 1
+  elif [ "$cmd" = edge-tts ] && ! above_min "$(edge_tts_version)"; then
+    echo "Too old: edge-tts $(edge_tts_version)  ($(command -v edge-tts)) — needs > $EDGE_TTS_MIN"
+    echo "  Older releases fail against the voice service. Upgrade it in its own venv:"
+    edge_tts_install "--force "
+    echo "  If that did not change the version, an older copy may be shadowing it:"
+    echo "    which -a edge-tts   # remove the stale one, then: hash -r"
     exit 1
   fi
 done

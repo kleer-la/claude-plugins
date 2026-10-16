@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.2
+
+### Fixed
+
+- **`check.sh` accepted any `edge-tts`** — older releases gave version problems, so it now
+  requires one above 7.3 and, when the installed copy is older, prints
+  `pipx install --force "edge-tts>7.3"` (quoted: unquoted, the shell reads `>` as a
+  redirect). The install hints use the same spec. The exact failure of the older releases
+  is not recorded here. The C# port in `engine/dotnet/Voice.cs` still tracks 7.2.8 and was
+  not checked against 7.3.
+- **`make_videos.ps1 -Engine auto` fell back to WSL without saying why** — on a clean
+  Windows install with the .NET SDK it could land in WSL and nobody could tell. It now
+  warns with the reason: `dotnet` not on PATH in that shell, no SDK listed, or only SDKs
+  older than 10. The cause on the machine that reported it is not yet known, and the
+  warning is untested on Windows.
+
 ## 0.8.1
 
 ### Fixed
