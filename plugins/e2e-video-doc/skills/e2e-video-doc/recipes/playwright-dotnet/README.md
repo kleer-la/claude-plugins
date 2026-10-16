@@ -138,7 +138,10 @@ the card matches the voice.
 - `postJson` returns a typed `JsonResponse` instead of `{ status, body }`, because reading a
   property off an untyped body is a cast on every line in C#.
 
-Everything else behaves the same, on purpose.
+Everything else behaves the same, on purpose — and for `ApiPanel.cs` that is now checked,
+not only claimed: [`examples/sample-app-dotnet`](../../../../examples/sample-app-dotnet/)
+links this file and runs `Headers`, `Reject`, `ShowCard` and the bearer `PostJson` against
+the Node sample's own `server.mjs`. Running it found no diff beyond the ones listed above.
 
 ## One .NET-only gotcha, measured
 

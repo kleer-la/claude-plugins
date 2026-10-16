@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.3
+
+### Added
+
+- **`examples/sample-app-dotnet`: `ApiPanel.cs` is run, not just claimed to match** ([#20]) —
+  an MSTest project that links the recipe file (not a copy) and walks the `api` flow against
+  the Node sample's own `server.mjs`: token, the red rejected call, the bearer call with a
+  trimmed `Headers`, `ShowCard` on the access log, and the order found on the storefront. It
+  asserts what the Node flow only photographs — the status colours, that neither the token
+  nor the password reaches a card, that `PickFields` says what it left out — and that an
+  over-tall card throws. Mutating `Reject`, `Headers`, `ShowCard`'s verb and the bearer
+  header in `ApiPanel.cs` each failed it. No diff from `apiPanel.ts` beyond those already
+  listed in the recipe README. `CHROMIUM_PATH` points it at an existing Chromium, for an OS
+  newer than the pinned Playwright can download for (Ubuntu 26.04 was one). Run on Linux
+  only; not on Windows or `net48`.
+
+[#20]: https://github.com/kleer-la/claude-plugins/issues/20
+
 ## 0.8.2
 
 ### Fixed
