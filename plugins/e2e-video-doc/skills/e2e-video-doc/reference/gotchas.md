@@ -122,6 +122,10 @@ a port of `edge-tts` 7.2.8 with the constant names kept, so the fix is to diff
 `communicate.py`, `drm.py` and `constants.py`, from the `edge-tts` release that handled the
 change, against it. A 403 on one machine only is more often the clock: the token changes every
 five minutes, and the client corrects a skew once, from the server's date, before giving up.
+A 403 on every machine is the service moving: around 2026-10-10 Read Aloud left
+`speech.platform.bing.com` for `api.msedgeservices.com` (rany2/edge-tts#490), and the engine
+answered 403 on the first entry until `WSS_URL` followed it. The new host also rate-limits, so
+`Connect` waits and retries on a 429 instead of failing the video on the twelfth entry.
 
 **A machine with only Visual Studio has no nuget.org package source** — just the offline one —
 and `dotnet run` then fails to restore FFMpegCore with an error that names the package, not the

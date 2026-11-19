@@ -86,7 +86,8 @@ public static class Assemble
             catch (Exception e)
             {
                 Console.Error.WriteLine($"The voice failed on entry {idx}. Usual causes: a voice name that does not exist,");
-                Console.Error.WriteLine("no network access, or the service having changed its handshake (see Voice.cs).");
+                Console.Error.WriteLine("no network access, or the service having changed its host or handshake: a 403 on");
+                Console.Error.WriteLine("the first entry, every time, is that one and not the clock (see WSS_URL in Voice.cs).");
                 Console.Error.WriteLine($"  {e.GetType().Name}: {e.Message}");
                 return 1;
             }
