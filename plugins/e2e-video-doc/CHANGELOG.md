@@ -10,7 +10,7 @@
   `Voice.cs` now connects to the new host, with the client token as
   `Ocp-Apim-Subscription-Key` and the legacy `Sec-MS-GEC` still at version `1-`: `2-` with
   this token is also a 403. The engine still tracks edge-tts 7.2.8 otherwise; real v2 tokens
-  are not ported.
+  are not ported yet, and #24 stays open for them.
 - **The new host rate-limits, and one 429 aborted the whole video** — `Connect` now waits
   5 s, 10 s, 15 s… and retries, up to eight times.
 - **The error pointed at the clock** — the message after a failed entry now says that a 403

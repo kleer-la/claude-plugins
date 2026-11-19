@@ -15,6 +15,10 @@ namespace E2EVideoDoc.Engine;
 /// the Sec-MS-GEC token appeared in 2024 — the fix is to diff those three files, from the edge-tts
 /// release that fixed it, against this one.
 ///
+/// One deliberate exception since 0.8.4: WSS_URL here is the new host without its query string
+/// (constants.py puts the token in it), and BASE_URL is gone. Connect builds the query, with the
+/// legacy 1- token, until the v2 token from edge-tts 7.3 is ported (#24).
+///
 /// Not an official or documented API. edge-tts carries the same risk; the difference is that
 /// here the fix is an edit to this file rather than a `pipx upgrade`.
 /// </summary>
