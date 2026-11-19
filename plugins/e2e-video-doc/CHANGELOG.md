@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.4
+
+### Fixed
+
+- **The .NET engine's voice answered 403 on the first entry** ([#24], [#25]) — since about
+  2026-10-10 Microsoft serves Edge Read Aloud from `api.msedgeservices.com`, and
+  `speech.platform.bing.com/.../edge/v1` refuses every handshake (rany2/edge-tts#490).
+  `Voice.cs` now connects to the new host, with the client token as
+  `Ocp-Apim-Subscription-Key` and the legacy `Sec-MS-GEC` still at version `1-`: `2-` with
+  this token is also a 403. The engine still tracks edge-tts 7.2.8 otherwise; real v2 tokens
+  are not ported yet, and #24 stays open for them.
+- **The new host rate-limits, and one 429 aborted the whole video** — `Connect` now waits
+  5 s, 10 s, 15 s… and retries, up to eight times.
+- **The error pointed at the clock** — the message after a failed entry now says that a 403
+  on every entry is the service moving, and where the host is set.
+
+Verified on Windows 11: this branch assembled a 12-entry narration end to end (181 s), where
+0.5.0 failed on entry 01 the same day. The same two changes, applied by hand, had assembled a
+25-entry one in October ([#24]). The engine's own tests pass.
+
+[#24]: https://github.com/kleer-la/claude-plugins/issues/24
+[#25]: https://github.com/kleer-la/claude-plugins/issues/25
+
 ## 0.8.3
 
 ### Added

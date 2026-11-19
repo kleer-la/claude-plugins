@@ -15,13 +15,25 @@ namespace E2EVideoDoc.Engine;
 /// the Sec-MS-GEC token appeared in 2024 — the fix is to diff those three files, from the edge-tts
 /// release that fixed it, against this one.
 ///
+/// One deliberate exception since 0.8.4: WSS_URL here is the new host without its query string
+/// (constants.py puts the token in it), and BASE_URL is gone. Connect builds the query, with the
+/// legacy 1- token, until the v2 token from edge-tts 7.3 is ported (#24).
+///
 /// Not an official or documented API. edge-tts carries the same risk; the difference is that
 /// here the fix is an edit to this file rather than a `pipx upgrade`.
 /// </summary>
 public static partial class Voice
 {
     const string TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
-    const string BASE_URL = "speech.platform.bing.com/consumer/speech/synthesize/readaloud";
+    /// <summary>
+    /// Read Aloud's new host (rany2/edge-tts#490, #507). The old one,
+    /// speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1, answers 403 since
+    /// about 2026-10-10. The client token goes in Ocp-Apim-Subscription-Key, and the legacy
+    /// Sec-MS-GEC with version prefix 1- is still accepted; 2- with this token is a 403.
+    /// </summary>
+    const string WSS_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1";
+    /// <summary>The new host rate-limits; a narration of a dozen entries or more can meet a 429.</summary>
+    const int MaxRateLimitRetries = 8;
     const string CHROMIUM_FULL_VERSION = "143.0.3650.75";
     const long WIN_EPOCH = 11644473600;
     /// <summary>communicate.py splits text at 4096 bytes. No narration entry comes near; this fails instead.</summary>
@@ -121,9 +133,10 @@ public static partial class Voice
     }
 
     /// <summary>
-    /// A 403 is usually the clock: the token changes every 5 minutes and a skewed machine
-    /// produces one the service rejects. Like drm.py, correct it from the server's date and try
-    /// once more.
+    /// A 403 on the first attempt may be the clock: the token changes every 5 minutes and a
+    /// skewed machine produces one the service rejects. Like drm.py, correct it from the server's
+    /// date and try once more. A 429 is the new host's rate limit: wait a little longer each time
+    /// and try again, rather than abort the whole video on one entry.
     /// </summary>
     static async Task<ClientWebSocket> Connect(CancellationToken ct)
     {
@@ -132,7 +145,7 @@ public static partial class Voice
             var ws = NewWebSocket();
             try
             {
-                var url = $"wss://{BASE_URL}/edge/v1?TrustedClientToken={TRUSTED_CLIENT_TOKEN}"
+                var url = $"{WSS_URL}?Ocp-Apim-Subscription-Key={TRUSTED_CLIENT_TOKEN}"
                     + $"&ConnectionId={Guid.NewGuid():N}"
                     + $"&Sec-MS-GEC={SecMsGec(DateTimeOffset.UtcNow)}"
                     + $"&Sec-MS-GEC-Version=1-{CHROMIUM_FULL_VERSION}";
@@ -144,6 +157,11 @@ public static partial class Voice
             {
                 _clockSkewSeconds += (server - DateTimeOffset.UtcNow).TotalSeconds;
                 ws.Dispose();
+            }
+            catch (WebSocketException) when (attempt <= MaxRateLimitRetries && ws.HttpStatusCode == HttpStatusCode.TooManyRequests)
+            {
+                ws.Dispose();
+                await Task.Delay(TimeSpan.FromSeconds(5 * attempt), ct);
             }
             catch
             {
