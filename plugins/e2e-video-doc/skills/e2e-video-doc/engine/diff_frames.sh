@@ -38,6 +38,13 @@
 
 set -euo pipefail
 
+# Windows answers `python3` with a stub in WindowsApps that only points at the Store, and a
+# python.org install answers to `python`, not `python3` (#25). When python3 does not run and
+# python is a Python 3, every python3 below goes to it. check.sh does the same.
+if ! python3 --version >/dev/null 2>&1 && python --version 2>&1 | grep -q '^Python 3'; then
+  python3() { python "$@"; }
+fi
+
 BEFORE="${1:?usage: diff_frames.sh <before_dir> <after_dir> [threshold]}"
 AFTER="${2:?usage: diff_frames.sh <before_dir> <after_dir> [threshold]}"
 THRESHOLD="${3:-0.999}"

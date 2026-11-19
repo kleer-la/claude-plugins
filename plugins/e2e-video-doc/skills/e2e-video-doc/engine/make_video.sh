@@ -38,6 +38,13 @@ SEGMENTS_DIR="$SCREENSHOTS_DIR/segments"
 ENGINE_DIR="${ENGINE_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 bash "$ENGINE_DIR/check.sh" --quiet
 
+# Windows answers `python3` with a stub in WindowsApps that only points at the Store, and a
+# python.org install answers to `python`, not `python3` (#25). When python3 does not run and
+# python is a Python 3, every python3 below goes to it. check.sh does the same.
+if ! python3 --version >/dev/null 2>&1 && python --version 2>&1 | grep -q '^Python 3'; then
+  python3() { python "$@"; }
+fi
+
 [ -f "$NARRATION_FILE" ] || { echo "No such narration file: $NARRATION_FILE"; exit 1; }
 [ -d "$SCREENSHOTS_DIR" ] || { echo "No such screenshots directory: $SCREENSHOTS_DIR"; exit 1; }
 
@@ -68,6 +75,14 @@ abspath() {
 # Resolved once, here: ffmpeg's concat demuxer resolves paths against the list file rather
 # than the working directory, so everything written into it has to be absolute.
 SEGMENTS_DIR="$(abspath "$SEGMENTS_DIR")"
+
+# What goes *inside* the concat list, as opposed to on a command line. Under Git Bash $PWD is
+# /k/..., and MSYS rewrites such a path to K:/... only when it is an argument to a native
+# program; ffmpeg.exe reads the list itself and opened /k/x as K:/k/x (#25). cygpath exists
+# only under MSYS and Cygwin, so everywhere else the path goes through as it is.
+native_path() {
+  if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s\n' "$1"; fi
+}
 
 ENTRIES=$(jq length "$NARRATION_FILE")
 CONCAT_FILE="$SEGMENTS_DIR/concat.txt"
@@ -169,7 +184,7 @@ for i in $(seq 0 $((ENTRIES - 1))); do
       exit 1
     }
 
-  echo "file '$SEGMENT'" >> "$CONCAT_FILE"
+  echo "file '$(native_path "$SEGMENT")'" >> "$CONCAT_FILE"
 
   # A cue per spoken entry, timed against the running total of each segment's *actual*
   # length — not SEGMENT_DURATION, which `-shortest` does not always honour: it stops a

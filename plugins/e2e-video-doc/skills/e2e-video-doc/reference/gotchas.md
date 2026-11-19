@@ -158,6 +158,19 @@ whose blob did not change, so `/plugin marketplace update` leaves an existing cl
 directly — `devcontainer.sh`, say — has nothing rescuing it, so it needs the
 `.gitattributes` to have been in place when the marketplace was cloned.
 
+**Git Bash rewrites `/k/...` paths on command lines, not inside files.** `make_video.sh`
+writes absolute segment paths into `concat.txt`, and under Git Bash those came from `$PWD`
+as `/k/...`. The native `ffmpeg.exe` reads that list itself and opened `/k/x` as `K:/k/x`
+(#25). The script now writes each line through `cygpath -m` when `cygpath` exists, which is
+only under MSYS and Cygwin.
+
+**On Windows `python3` may be the Store stub.** `WindowsApps\python3.exe` is on PATH by
+default and only prints a pointer to the Microsoft Store, while a python.org install answers
+to `python`. `check.sh` used to report a working Python as broken because of it (#25). The
+engine scripts now use `python` when `python3` does not run and `python` is a Python 3.
+When neither works, `check.sh` names the stub and where to turn it off: Settings > Apps >
+Advanced app settings > App execution aliases.
+
 **`cmd /c` does not expand `$VAR`.** The capture command runs through `cmd` on Windows,
 where the syntax is `%VAR%`. The variables themselves arrive intact — a capture *script*
 that reads `process.env.SCREENSHOTS` or `$env:SCREENSHOTS` works fine — but a capture

@@ -23,6 +23,14 @@ if [ "${1:-}" = "--quiet" ]; then QUIET=yes; fi
 
 TOOLS="edge-tts ffmpeg ffprobe jq python3"
 
+# Windows answers `python3` with a stub in WindowsApps that only points at the Store, and a
+# python.org install answers to `python`, not `python3` (#25). When python3 does not run and
+# python is a Python 3, every python3 below goes to it. make_video.sh and diff_frames.sh do the
+# same, so a python3 that is this function counts as found and running.
+if ! python3 --version >/dev/null 2>&1 && python --version 2>&1 | grep -q '^Python 3'; then
+  python3() { python "$@"; }
+fi
+
 # Older edge-tts releases gave version problems (reported by the maintainer; the exact
 # failure is not recorded here), so the engine wants a release above 7.3. The spec is quoted wherever it is printed: unquoted, the
 # shell reads the > as a redirect and "installs" edge-tts into a file called 7.3.
@@ -116,6 +124,13 @@ for cmd in $TOOLS; do
                 edge_tts_install "--force " ;
                 echo "  If a reinstall did not help, an older copy may be shadowing it:" ;
                 echo "    which -a edge-tts   # remove the stale one, then: hash -r" ;;
+      python3)  case "$(command -v python3)" in
+                  *WindowsApps*)
+                    echo "  That is Windows' Store stub, not a Python. Install Python 3 from python.org"
+                    echo "  (it answers to \`python\`, which the engine then uses), or turn the stub off:"
+                    echo "  Settings > Apps > Advanced app settings > App execution aliases > python3.exe" ;;
+                  *) echo "  Reinstall it: $PKG python3" ;;
+                esac ;;
       *)        echo "  Reinstall it: $PKG $cmd" ;;
     esac
     exit 1
@@ -132,7 +147,9 @@ done
 if [ -z "$QUIET" ]; then
   echo "All five run — this machine can assemble a video."
   for cmd in $TOOLS; do
-    printf "  %-9s %s\n" "$cmd" "$(command -v "$cmd")"
+    WHERE="$(command -v "$cmd")"
+    [ "$WHERE" = python3 ] && WHERE="$(command -v python) (python3 is the Windows stub)"
+    printf "  %-9s %s\n" "$cmd" "$WHERE"
   done
 fi
 exit 0

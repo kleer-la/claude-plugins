@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.5
+
+### Fixed
+
+- **The bash engine could not concatenate under Git Bash** ([#25]) — `concat.txt` held
+  `/k/...` paths from `$PWD`, which the native `ffmpeg.exe` opened as `K:/k/...`.
+  `make_video.sh` now writes them through `cygpath -m` when `cygpath` exists.
+- **`check.sh` failed on Windows with Python installed** ([#25]) — `python3` resolved to the
+  WindowsApps Store stub. `check.sh`, `make_video.sh` and `diff_frames.sh` now use `python`
+  when `python3` does not run and `python` is a Python 3. When neither runs, `check.sh` says
+  it is the stub and how to turn it off, and `gotchas.md` covers both.
+
+Checked on Linux with a fake stub and a fake `cygpath` on PATH; not yet run on Windows.
+
 ## 0.8.4
 
 ### Fixed
